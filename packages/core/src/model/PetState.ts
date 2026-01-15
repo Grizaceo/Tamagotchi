@@ -11,6 +11,9 @@ export interface PetState {
   unlockedGifts: string[];
   unlockedAchievements: string[];
   album: Record<string, unknown>;
+  minigames: {
+    lastPlayed: Record<string, number>;
+  };
   settings: GameSettings;
 }
 
@@ -22,6 +25,7 @@ export function createInitialPetState(): PetState {
       happiness: 70,
       energy: 60,
       health: 90,
+      affection: 20,
     },
     alive: true,
     totalTicks: 0,
@@ -29,10 +33,16 @@ export function createInitialPetState(): PetState {
     unlockedGifts: [],
     unlockedAchievements: [],
     album: {},
+    minigames: {
+      lastPlayed: {},
+    },
     settings: {
       difficulty: 'normal',
       soundEnabled: true,
       animationsEnabled: true,
+      reducedMotion: false,
+      speed: '1x',
+      paused: false,
     },
   };
 }

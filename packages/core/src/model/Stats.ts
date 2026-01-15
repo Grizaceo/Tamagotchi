@@ -6,6 +6,7 @@ export interface Stats {
   happiness: number; // 0 = muy triste, 100 = muy feliz
   energy: number;    // 0 = dormido, 100 = hiperactivo
   health: number;    // 0 = enfermo, 100 = saludable
+  affection: number; // 0 = huraño, 100 = cariñoso
 }
 
 export function createDefaultStats(): Stats {
@@ -14,6 +15,7 @@ export function createDefaultStats(): Stats {
     happiness: 70,
     energy: 60,
     health: 90,
+    affection: 20,
   };
 }
 

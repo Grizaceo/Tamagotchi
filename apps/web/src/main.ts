@@ -1,15 +1,32 @@
-import './style.css'
+import { SceneManager } from './game/SceneManager'
+import { MainScene } from './game/scenes/MainScene'
+import { MinigameSelect } from './game/scenes/MinigameSelect'
+import { PuddingGame } from './game/scenes/PuddingGame'
+import { MemoryGame } from './game/scenes/MemoryGame'
 
 const canvas = document.querySelector<HTMLCanvasElement>('#screen')!
-const ctx = canvas.getContext('2d')!
+const manager = new SceneManager(canvas)
 
-// Estilo retro
-ctx.fillStyle = '#000'
-ctx.fillRect(0, 0, 320, 240)
+manager.registerScene('main', MainScene)
+manager.registerScene('minigame-select', MinigameSelect)
+manager.registerScene('pudding-game', PuddingGame)
+manager.registerScene('memory-game', MemoryGame)
 
-ctx.fillStyle = '#0F0'
-ctx.font = 'bold 12px monospace'
-ctx.fillText('Pompom Tama - boot', 20, 30)
-ctx.fillText('UI Canvas OK', 20, 50)
+manager.switchScene('main')
 
-console.log('Canvas initialized and ready!')
+let lastTime = 0
+function loop(time: number) {
+    const delta = time - lastTime
+    lastTime = time
+
+    manager.update(delta)
+    manager.draw()
+
+    requestAnimationFrame(loop)
+}
+
+window.addEventListener('keydown', (e) => manager.handleInput(e))
+
+requestAnimationFrame(loop)
+
+console.log('Game loop started')

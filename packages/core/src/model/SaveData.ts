@@ -26,10 +26,14 @@ export interface SaveData {
   }>;
   unlockedGifts: string[];
   unlockedAchievements: string[];
+  album: Record<string, unknown>;
   settings: {
     difficulty: 'easy' | 'normal' | 'hard';
     soundEnabled: boolean;
     animationsEnabled: boolean;
+    reducedMotion: boolean;
+    speed: '1x' | '2x';
+    paused: boolean;
   };
 }
 
@@ -59,10 +63,14 @@ export function createEmptySaveData(): SaveData {
     history: [],
     unlockedGifts: [],
     unlockedAchievements: [],
+    album: {},
     settings: {
       difficulty: 'normal',
       soundEnabled: true,
       animationsEnabled: true,
+      reducedMotion: false,
+      speed: '1x',
+      paused: false,
     },
   };
 }

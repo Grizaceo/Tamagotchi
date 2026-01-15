@@ -26,10 +26,14 @@ export function serialize(state: PetState): SaveData {
     })),
     unlockedGifts: state.unlockedGifts,
     unlockedAchievements: state.unlockedAchievements,
+    album: state.album,
     settings: {
       difficulty: state.settings.difficulty,
       soundEnabled: state.settings.soundEnabled,
       animationsEnabled: state.settings.animationsEnabled,
+      reducedMotion: state.settings.reducedMotion,
+      speed: state.settings.speed,
+      paused: state.settings.paused,
     },
   };
 }
@@ -70,11 +74,14 @@ export function deserialize(data: SaveData): PetState {
     })),
     unlockedGifts: data.unlockedGifts ?? [],
     unlockedAchievements: data.unlockedAchievements ?? [],
-    album: {},
+    album: data.album ?? {},
     settings: {
       difficulty: data.settings.difficulty ?? 'normal',
       soundEnabled: data.settings.soundEnabled ?? true,
       animationsEnabled: data.settings.animationsEnabled ?? true,
+      reducedMotion: data.settings.reducedMotion ?? false,
+      speed: data.settings.speed === '2x' ? '2x' : '1x',
+      paused: data.settings.paused ?? false,
     },
   };
 }

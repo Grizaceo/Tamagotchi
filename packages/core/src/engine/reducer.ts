@@ -14,7 +14,7 @@ export function reduce(state: PetState, action: Action): PetState {
   }
 
   let newState = structuredClone(state);
-  
+
   // Primero aplica un tick (el tiempo siempre avanza)
   newState = tick(newState, 1);
 
@@ -39,6 +39,9 @@ export function reduce(state: PetState, action: Action): PetState {
     case 'PET':
       newState = applyPet(newState, action);
       break;
+    case 'PLAY_MINIGAME':
+      newState = applyPlayMinigame(newState, action);
+      break;
   }
 
   return newState;
@@ -46,11 +49,11 @@ export function reduce(state: PetState, action: Action): PetState {
 
 function applyFeed(state: PetState, action: Action): PetState {
   const newState = structuredClone(state);
-  
+
   // Reduce hambre pero aumenta un poco la felicidad
   newState.stats.hunger = clampStat(newState.stats.hunger - 20);
   newState.stats.happiness = clampStat(newState.stats.happiness + 5);
-  
+
   newState.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'FEED',
@@ -64,12 +67,12 @@ function applyFeed(state: PetState, action: Action): PetState {
 
 function applyPlay(state: PetState, action: Action): PetState {
   const newState = structuredClone(state);
-  
+
   // Aumenta felicidad pero reduce energía y aumenta hambre
   newState.stats.happiness = clampStat(newState.stats.happiness + 20);
   newState.stats.energy = clampStat(newState.stats.energy - 15);
   newState.stats.hunger = clampStat(newState.stats.hunger + 10);
-  
+
   newState.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'PLAY',
@@ -83,11 +86,11 @@ function applyPlay(state: PetState, action: Action): PetState {
 
 function applyRest(state: PetState, action: Action): PetState {
   const newState = structuredClone(state);
-  
+
   // Aumenta energía, reduce hambre un poco
   newState.stats.energy = clampStat(newState.stats.energy + 30);
   newState.stats.hunger = clampStat(newState.stats.hunger + 5);
-  
+
   newState.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'REST',
@@ -101,10 +104,10 @@ function applyRest(state: PetState, action: Action): PetState {
 
 function applyMedicate(state: PetState, action: Action): PetState {
   const newState = structuredClone(state);
-  
+
   // Aumenta salud
   newState.stats.health = clampStat(newState.stats.health + 25);
-  
+
   newState.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'MEDICATE',
@@ -118,10 +121,10 @@ function applyMedicate(state: PetState, action: Action): PetState {
 
 function applyPet(state: PetState, action: Action): PetState {
   const newState = structuredClone(state);
-  
+
   // Aumenta felicidad levemente
   newState.stats.happiness = clampStat(newState.stats.happiness + 5);
-  
+
   newState.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'PET',
@@ -129,6 +132,36 @@ function applyPet(state: PetState, action: Action): PetState {
       happinessAfter: newState.stats.happiness,
     })
   );
+
+  return newState;
+}
+
+function applyPlayMinigame(state: PetState, action: Action): PetState {
+  const gameId = (action.data?.gameId as string) || 'unknown';
+  const result = (action.data?.result as string) || 'win';
+  const score = (action.data?.score as number) || 0;
+
+  // Cooldown de 100 ticks
+  const lastPlayed = state.minigames.lastPlayed[gameId] || -1000;
+  if (state.totalTicks - lastPlayed < 100) {
+    return state; // No recompensa si está en cooldown
+  }
+
+  const newState = structuredClone(state);
+
+  // Recompensas
+  if (result === 'perfect') {
+    newState.stats.happiness = clampStat(newState.stats.happiness + 25);
+    newState.stats.affection = clampStat(newState.stats.affection + 10);
+    newState.history.push(createEvent('MINIGAME_PERFECT', action.timestamp, { gameId, score }));
+  } else {
+    newState.stats.happiness = clampStat(newState.stats.happiness + 15);
+    newState.stats.affection = clampStat(newState.stats.affection + 5);
+    newState.history.push(createEvent('MINIGAME_WIN', action.timestamp, { gameId, score }));
+  }
+
+  // Registrar último juego
+  newState.minigames.lastPlayed[gameId] = state.totalTicks;
 
   return newState;
 }

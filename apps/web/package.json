@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@pompom/core": "workspace:*",
     "typescript": "~5.9.3",
     "vite": "^7.2.4"
   }
