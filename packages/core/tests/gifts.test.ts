@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialPetState } from '../src/model/PetState';
-import { evaluateGiftUnlocks, getUnlockedGifts, GIFT_CATALOG } from '../src/features/gifts.ts';
+import { evaluateGiftUnlocks, getUnlockedGifts, GIFT_CATALOG } from '../src/features/gifts';
 
 describe('gifts', () => {
   it('no desbloquea regalos sin condiciones cumplidas', () => {

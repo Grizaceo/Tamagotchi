@@ -17,8 +17,12 @@ export function serialize(state: PetState): SaveData {
         happiness: state.stats.happiness,
         energy: state.stats.energy,
         health: state.stats.health,
+        affection: state.stats.affection,
       },
       alive: state.alive,
+      minigames: {
+        lastPlayed: {}, // TODO: populate from minigame tracking
+      },
     },
     history: state.history.map((event, idx) => ({
       tick: event.timestamp,
@@ -64,6 +68,7 @@ export function deserialize(data: SaveData): PetState {
       happiness: Math.max(0, Math.min(100, data.state.stats.happiness ?? 50)),
       energy: Math.max(0, Math.min(100, data.state.stats.energy ?? 50)),
       health: Math.max(0, Math.min(100, data.state.stats.health ?? 50)),
+      affection: Math.max(0, Math.min(100, data.state.stats.affection ?? 50)),
     },
     alive: data.state.alive ?? true,
     totalTicks: data.totalTicks ?? 0,
