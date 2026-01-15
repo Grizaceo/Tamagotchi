@@ -13,13 +13,19 @@ export interface SaveData {
       happiness: number;
       energy: number;
       health: number;
+      affection: number;
     };
     alive: boolean;
+    minigames: {
+      lastPlayed: Record<string, number>; // gameId -> tick
+    };
   };
   history: Array<{
     tick: number;
     statChanges?: Record<string, number>;
   }>;
+  unlockedGifts: string[];
+  unlockedAchievements: string[];
   settings: {
     difficulty: 'easy' | 'normal' | 'hard';
     soundEnabled: boolean;
@@ -43,10 +49,16 @@ export function createEmptySaveData(): SaveData {
         happiness: 70,
         energy: 60,
         health: 90,
+        affection: 20,
       },
       alive: true,
+      minigames: {
+        lastPlayed: {},
+      },
     },
     history: [],
+    unlockedGifts: [],
+    unlockedAchievements: [],
     settings: {
       difficulty: 'normal',
       soundEnabled: true,

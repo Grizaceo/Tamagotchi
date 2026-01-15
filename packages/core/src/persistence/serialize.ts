@@ -24,6 +24,8 @@ export function serialize(state: PetState): SaveData {
       tick: event.timestamp,
       statChanges: event.data as Record<string, number> | undefined,
     })),
+    unlockedGifts: state.unlockedGifts,
+    unlockedAchievements: state.unlockedAchievements,
     settings: {
       difficulty: state.settings.difficulty,
       soundEnabled: state.settings.soundEnabled,
@@ -52,7 +54,7 @@ export function deserialize(data: SaveData): PetState {
   }
 
   return {
-    species: (data.state.species as 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT') || 'FLAN_BEBE',
+    species: (data.state.species as 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE') || 'FLAN_BEBE',
     stats: {
       hunger: Math.max(0, Math.min(100, data.state.stats.hunger ?? 50)),
       happiness: Math.max(0, Math.min(100, data.state.stats.happiness ?? 50)),
@@ -66,7 +68,8 @@ export function deserialize(data: SaveData): PetState {
       timestamp: h.tick,
       data: h.statChanges,
     })),
-    unlockedGifts: [],
+    unlockedGifts: data.unlockedGifts ?? [],
+    unlockedAchievements: data.unlockedAchievements ?? [],
     album: {},
     settings: {
       difficulty: data.settings.difficulty ?? 'normal',
