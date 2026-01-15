@@ -3,12 +3,13 @@ import { GameSettings } from './Settings';
 import { GameEvent } from './Events';
 
 export interface PetState {
-  species: 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT';
+  species: 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE';
   stats: Stats;
   alive: boolean;
   totalTicks: number;
   history: GameEvent[];
   unlockedGifts: string[];
+  unlockedAchievements: string[];
   album: Record<string, unknown>;
   settings: GameSettings;
 }
@@ -26,6 +27,7 @@ export function createInitialPetState(): PetState {
     totalTicks: 0,
     history: [],
     unlockedGifts: [],
+    unlockedAchievements: [],
     album: {},
     settings: {
       difficulty: 'normal',
