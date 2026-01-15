@@ -1,0 +1,24 @@
+node_modules
+dist
+.vite
+.DS_Store
+
+# env
+.env
+.env.*
+
+# logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / IDE
+.vscode
+.idea
+
+# test
+coverage
+
+# misc
+*.local
