@@ -25,6 +25,7 @@ export class MemoryGame extends Scene {
         if (this.gameState === 'playing') {
             if (this.cards.every(c => c.matched)) {
                 this.gameState = 'won';
+                gameCore.dispatch(createAction('PLAY_MINIGAME', Date.now(), { gameId: 'memory', result: 'win' }));
             } else if (this.attempts >= this.maxAttempts) {
                 this.gameState = 'lost';
             }

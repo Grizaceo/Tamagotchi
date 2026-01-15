@@ -78,15 +78,12 @@ export class PuddingGame extends Scene {
                 if (this.pos >= targetMin && this.pos <= targetMax) {
                     this.gameState = 'won';
                     this.resultMessage = 'PERFECT CATCH!';
-                    // Emit event to core (mock for now, need core instance)
-                    console.log('MINIGAME_PERFECT: pudding');
+                    gameCore.dispatch(createAction('PLAY_MINIGAME', Date.now(), { gameId: 'pudding', result: 'perfect' }));
                 } else {
-                    this.gameState = 'won'; // In this game even a bad catch is a "win" but less rewards? 
-                    // Per requirements: "Enter cuando esté en zona objetivo". 
-                    // Let's say if you miss completely it's a loss.
                     if (Math.abs(this.pos - 0.5) < 0.3) {
                         this.gameState = 'won';
                         this.resultMessage = 'NICE!';
+                        gameCore.dispatch(createAction('PLAY_MINIGAME', Date.now(), { gameId: 'pudding', result: 'win' }));
                     } else {
                         this.gameState = 'lost';
                         this.resultMessage = 'MISSED!';
