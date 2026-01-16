@@ -1,15 +1,27 @@
-import { PetState } from '../model/PetState';
-import { GameEvent } from '../model/Events';
-import { getSortedRules, EvolutionSpecies } from './evolutionRules';
+import type { PetState } from '../model/PetState';
+import type { GameEvent } from '../model/Events';
+import { getSortedRules, type EvolutionSpecies } from './evolutionRules';
 
 /**
  * Evalúa si el pet debe evolucionar y retorna la nueva species, o undefined si no.
  * Determinista: solo depende del estado actual.
  */
 export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined {
-  // Solo puede evolucionar si es adulto y aún no ha evolucionado a forma final
-  if (state.species === 'FLAN_BEBE' || state.species === 'FLAN_TEEN') {
-    return undefined; // No puede evolucionar antes de adulto
+  // Evolución temprana por edad (ticks)
+  if (state.species === 'FLAN_BEBE') {
+    // 1 minuto (60 ticks) para pasar a TEEN
+    if (state.totalTicks >= 60) {
+      return 'FLAN_TEEN';
+    }
+    return undefined;
+  }
+
+  if (state.species === 'FLAN_TEEN') {
+    // 5 minutos (300 ticks) para pasar a ADULT
+    if (state.totalTicks >= 300) {
+      return 'FLAN_ADULT';
+    }
+    return undefined;
   }
 
   // Si ya es una forma final (no es FLAN_ADULT), no evoluciona más

@@ -1,5 +1,7 @@
-import { PetState, createInitialPetState } from '../model/PetState';
-import { SaveData, SAVE_DATA_VERSION } from '../model/SaveData';
+import type { PetState } from '../model/PetState';
+import type { SaveData } from '../model/SaveData';
+import { SAVE_DATA_VERSION } from '../model/SaveData';
+import { createInitialPetState } from '../model/PetState';
 
 /**
  * Convierte PetState a SaveData para persistencia
@@ -21,10 +23,11 @@ export function serialize(state: PetState): SaveData {
       },
       alive: state.alive,
       minigames: {
-        lastPlayed: {}, // TODO: populate from minigame tracking
+        lastPlayed: state.minigames.lastPlayed,
+        games: state.minigames.games,
       },
     },
-    history: state.history.map((event, idx) => ({
+    history: state.history.map((event) => ({
       tick: event.timestamp,
       statChanges: event.data as Record<string, number> | undefined,
     })),
@@ -72,7 +75,7 @@ export function deserialize(data: SaveData): PetState {
     },
     alive: data.state.alive ?? true,
     totalTicks: data.totalTicks ?? 0,
-    history: data.history.map((h, idx) => ({
+    history: data.history.map((h) => ({
       type: 'STAT_CHANGED',
       timestamp: h.tick,
       data: h.statChanges,
@@ -80,6 +83,13 @@ export function deserialize(data: SaveData): PetState {
     unlockedGifts: data.unlockedGifts ?? [],
     unlockedAchievements: data.unlockedAchievements ?? [],
     album: data.album ?? {},
+    minigames: {
+      lastPlayed: data.state.minigames?.lastPlayed ?? {},
+      games: data.state.minigames?.games ?? {
+        pudding: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+        memory: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+      },
+    },
     settings: {
       difficulty: data.settings.difficulty ?? 'normal',
       soundEnabled: data.settings.soundEnabled ?? true,

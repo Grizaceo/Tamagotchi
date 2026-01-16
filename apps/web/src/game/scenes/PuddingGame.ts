@@ -1,6 +1,4 @@
 import { Scene } from './Scene';
-import { gameCore } from '../GameCore';
-import { createAction } from '@pompom/core';
 
 export class PuddingGame extends Scene {
     private pos = 0;
@@ -75,19 +73,26 @@ export class PuddingGame extends Scene {
                 const targetMin = 0.5 - (20 / 200); // 40px width / 200px bar
                 const targetMax = 0.5 + (20 / 200);
 
+                let result: 'perfect' | 'win' | 'loss';
                 if (this.pos >= targetMin && this.pos <= targetMax) {
                     this.gameState = 'won';
                     this.resultMessage = 'PERFECT CATCH!';
-                    gameCore.dispatch(createAction('PLAY_MINIGAME', Date.now(), { gameId: 'pudding', result: 'perfect' }));
+                    result = 'perfect';
                 } else {
                     if (Math.abs(this.pos - 0.5) < 0.3) {
                         this.gameState = 'won';
                         this.resultMessage = 'NICE!';
-                        gameCore.dispatch(createAction('PLAY_MINIGAME', Date.now(), { gameId: 'pudding', result: 'win' }));
+                        result = 'win';
                     } else {
                         this.gameState = 'lost';
                         this.resultMessage = 'MISSED!';
+                        result = 'loss';
                     }
+                }
+                
+                // Notify game completion with reward
+                if (this.context.onGameComplete) {
+                    this.context.onGameComplete({ gameId: 'pudding', result });
                 }
             } else {
                 this.context.onSceneChange('minigame-select');

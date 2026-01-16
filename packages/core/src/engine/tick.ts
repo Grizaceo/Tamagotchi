@@ -1,4 +1,4 @@
-import { PetState } from '../model/PetState';
+import type { PetState } from '../model/PetState';
 import { clampStat } from '../model/Stats';
 import { createEvent } from '../model/Events';
 

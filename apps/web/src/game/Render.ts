@@ -98,7 +98,7 @@ function drawScene(
 
   switch (ui.scene) {
     case 'Home':
-      drawHome(ctx, state, ui, body, now);
+      drawHome(ctx, state, body, now);
       break;
     case 'CareMenu':
       drawCareMenu(ctx, ui, body);
@@ -129,7 +129,7 @@ function drawHeader(ctx: CanvasRenderingContext2D, title: string, area: Rect): v
   ctx.fillText(title.toUpperCase(), area.x + 6, area.y + area.h / 2);
 }
 
-function drawHome(ctx: CanvasRenderingContext2D, state: PetState, ui: UiState, area: Rect, now: number): void {
+function drawHome(ctx: CanvasRenderingContext2D, state: PetState, area: Rect, now: number): void {
   drawStats(ctx, state, { x: area.x, y: area.y, w: area.w, h: 24 });
 
   const petArea = { x: area.x, y: area.y + 28, w: area.w, h: area.h - 40 };

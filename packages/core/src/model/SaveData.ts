@@ -18,6 +18,13 @@ export interface SaveData {
     alive: boolean;
     minigames: {
       lastPlayed: Record<string, number>; // gameId -> tick
+      games?: Record<string, {
+        lastPlayed: number;
+        bestScore: number;
+        totalPlayed: number;
+        totalWins: number;
+        totalPerfect: number;
+      }>;
     };
   };
   history: Array<{

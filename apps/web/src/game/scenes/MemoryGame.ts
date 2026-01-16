@@ -1,6 +1,4 @@
 import { Scene } from './Scene';
-import { gameCore } from '../GameCore';
-import { createAction } from '@pompom/core';
 
 export class MemoryGame extends Scene {
     private cards: { id: number; symbol: string; flipped: boolean; matched: boolean }[] = [];
@@ -25,9 +23,14 @@ export class MemoryGame extends Scene {
         if (this.gameState === 'playing') {
             if (this.cards.every(c => c.matched)) {
                 this.gameState = 'won';
-                gameCore.dispatch(createAction('PLAY_MINIGAME', Date.now(), { gameId: 'memory', result: 'win' }));
+                if (this.context.onGameComplete) {
+                    this.context.onGameComplete({ gameId: 'memory', result: 'win', score: this.attempts });
+                }
             } else if (this.attempts >= this.maxAttempts) {
                 this.gameState = 'lost';
+                if (this.context.onGameComplete) {
+                    this.context.onGameComplete({ gameId: 'memory', result: 'loss', score: this.attempts });
+                }
             }
         }
     }

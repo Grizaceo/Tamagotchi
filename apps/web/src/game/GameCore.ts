@@ -1,4 +1,5 @@
-import { createInitialPetState, reduce, Action, PetState } from '@pompom/core';
+import { createInitialPetState, reduce } from '@pompom/core';
+import type { Action, PetState } from '@pompom/core';
 
 class GameCore {
     private state: PetState;

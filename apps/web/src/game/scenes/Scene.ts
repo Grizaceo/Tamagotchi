@@ -1,7 +1,14 @@
+export interface MinigameResult {
+  gameId: 'pudding' | 'memory';
+  result: 'win' | 'perfect' | 'loss';
+  score?: number;
+}
+
 export interface SceneContext {
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
     onSceneChange: (sceneName: string) => void;
+    onGameComplete?: (result: MinigameResult) => void;
 }
 
 export abstract class Scene {

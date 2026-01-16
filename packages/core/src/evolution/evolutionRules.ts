@@ -3,7 +3,7 @@
  * Define los caminos de evolución basados en condiciones deterministas
  */
 
-export type EvolutionSpecies = 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE';
+export type EvolutionSpecies = 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE';
 
 export interface EvolutionRule {
   targetSpecies: EvolutionSpecies;

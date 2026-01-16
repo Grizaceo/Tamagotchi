@@ -1,4 +1,4 @@
-import { PetState } from '../model/PetState';
+import type { PetState } from '../model/PetState';
 
 /**
  * Logros del jugador

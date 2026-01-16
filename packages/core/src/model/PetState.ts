@@ -1,6 +1,21 @@
-import { Stats } from './Stats';
-import { GameSettings } from './Settings';
-import { GameEvent } from './Events';
+import type { Stats } from './Stats';
+import type { GameSettings } from './Settings';
+import type { GameEvent } from './Events';
+
+export interface MinigameStats {
+  lastPlayed: number; // timestamp del último juego
+  bestScore: number;
+  totalPlayed: number;
+  totalWins: number;
+  totalPerfect: number;
+}
+
+export type MinigameId = 'pudding' | 'memory';
+
+export interface MinigamesState {
+  lastPlayed: Record<MinigameId, number>; // For cooldown tracking
+  games: Record<MinigameId, MinigameStats>;
+}
 
 export interface PetState {
   species: 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE';
@@ -11,9 +26,7 @@ export interface PetState {
   unlockedGifts: string[];
   unlockedAchievements: string[];
   album: Record<string, unknown>;
-  minigames: {
-    lastPlayed: Record<string, number>;
-  };
+  minigames: MinigamesState;
   settings: GameSettings;
 }
 
@@ -34,7 +47,14 @@ export function createInitialPetState(): PetState {
     unlockedAchievements: [],
     album: {},
     minigames: {
-      lastPlayed: {},
+      lastPlayed: {
+        pudding: -1000,
+        memory: -1000,
+      },
+      games: {
+        pudding: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+        memory: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+      },
     },
     settings: {
       difficulty: 'normal',

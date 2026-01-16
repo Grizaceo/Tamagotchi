@@ -1,5 +1,5 @@
-import { PetState } from '../model/PetState';
-import { Action, ActionType } from '../model/Actions';
+import type { PetState } from '../model/PetState';
+import type { Action } from '../model/Actions';
 import { clampStat } from '../model/Stats';
 import { createEvent } from '../model/Events';
 import { tick } from './tick';
@@ -141,8 +141,9 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
   const result = (action.data?.result as string) || 'win';
   const score = (action.data?.score as number) || 0;
 
-  // Cooldown de 100 ticks
-  const lastPlayed = state.minigames.lastPlayed[gameId] || -1000;
+  // Cooldown de 100 ticks - typeguard
+  const lastPlayedValue = state.minigames.lastPlayed[gameId as keyof typeof state.minigames.lastPlayed];
+  const lastPlayed = lastPlayedValue || -1000;
   if (state.totalTicks - lastPlayed < 100) {
     return state; // No recompensa si está en cooldown
   }
@@ -160,8 +161,8 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
     newState.history.push(createEvent('MINIGAME_WIN', action.timestamp, { gameId, score }));
   }
 
-  // Registrar último juego
-  newState.minigames.lastPlayed[gameId] = state.totalTicks;
+  // Registrar último juego - typeguard
+  newState.minigames.lastPlayed[gameId as keyof typeof newState.minigames.lastPlayed] = state.totalTicks;
 
   return newState;
 }
