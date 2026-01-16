@@ -59,12 +59,57 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
   let pendingSave = false;
   let rafId = 0;
 
-  let petSprite: HTMLImageElement | null = null;
-  const spriteImage = new Image();
-  spriteImage.src = '/descarga.jpg';
-  spriteImage.onload = () => {
-    petSprite = spriteImage;
-  };
+  // --- Visual System Initialization ---
+  const { AssetManager, SpriteRenderer } = await import('./renderer/SpriteRenderer');
+  const { UIRenderer } = await import('./renderer/UIRenderer');
+  const { SPRITE_CONFIGS } = await import('./renderer/SpriteConfigs'); // Dynamic import to avoid circular dep issues if any, or just cleaner
+
+  const assetManager = new AssetManager();
+  const uiRenderer = new UIRenderer(assetManager);
+
+  // Pre-load assets
+  try {
+    await uiRenderer.load();
+    for (const key in SPRITE_CONFIGS) {
+      await assetManager.load(key, SPRITE_CONFIGS[key].src);
+    }
+  } catch (e) {
+    console.error('Failed to load assets', e);
+  }
+
+  // SpriteRenderer instance (re-created when species changes or specific one reused)
+  // We'll keep one and update config, or create a map. 
+  // Simpler: Just create one based on current state and update it.
+  let spriteRenderer: any = null; // typed as SpriteRenderer
+
+  function updateSpriteRenderer(state: PetState) {
+    const species = state.species;
+    const config = SPRITE_CONFIGS[species] || SPRITE_CONFIGS['FLAN_BEBE']; // Fallback
+
+    if (!spriteRenderer || spriteRenderer.assetKey !== species) {
+      spriteRenderer = new SpriteRenderer(assetManager, species, config);
+      // Center sprite roughly
+      spriteRenderer.x = (320 - 48) / 2;
+      spriteRenderer.y = (240 - 48) / 2 + 20; // A bit lower than center
+    }
+
+    // Update Animation State based on PetState
+    // Priority: Sick > Sleep > Sad > Happy > Eat > Walk/Idle
+    let anim = 'idle';
+    if (!state.alive) anim = 'sick'; // Dead/Sick generic
+    else if (state.stats.health < 30) anim = 'sick';
+    else if (state.stats.happiness < 30) anim = 'sad';
+    else if (state.stats.happiness > 80) anim = 'happy';
+
+    // Check specific actions from history?
+    // For now, state-based.
+    // Ideally we listen to "ACtions" dispatched to trigger oneshot animations (eat).
+    // But for this step, basic state loop.
+
+    spriteRenderer.setAnimation(anim);
+  }
+
+  let petSprite: HTMLImageElement | null = null; // Deprecated but kept for compatibility with old renderFrame signature if needed temporarily
 
   minigameManager.setOnGameComplete((result) => {
     const action = createAction('PLAY_MINIGAME', petState.totalTicks, {
@@ -99,9 +144,18 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
       minigameManager.draw();
     }
 
+    // Update Sprite System
+    if (spriteRenderer) {
+      updateSpriteRenderer(petState);
+      spriteRenderer.update(delta);
+    }
+
+    // Render Frame
     renderFrame(ctx, petState, uiState, now, {
       minigameFrame: uiState.scene === 'Minigames' && uiState.minigameMode === 'playing' ? minigameCanvas : null,
-      petSprite,
+      petSprite: null, // Legacy
+      spriteRenderer, // Pass new renderer
+      uiRenderer,     // Pass new renderer
     });
 
     if (pendingSave && now - lastSaveAt > SAVE_INTERVAL_MS) {

@@ -25,25 +25,31 @@ export function renderFrame(
   const width = ctx.canvas.width;
   const height = ctx.canvas.height;
   ctx.imageSmoothingEnabled = false;
-  ctx.clearRect(0, 0, width, height);
 
-  drawFrame(ctx, width, height);
+  // Clear
+  ctx.fillStyle = PALETTE.screen; // Background color
+  ctx.fillRect(0, 0, width, height);
 
-  const frame = { x: 6, y: 6, w: width - 12, h: height - 12 };
-  const screen = { x: frame.x + 10, y: frame.y + 10, w: frame.w - 20, h: frame.h - 20 };
-  const barHeight = 32;
-  const bar = { x: screen.x + 6, y: screen.y + screen.h - barHeight - 6, w: screen.w - 12, h: barHeight };
-  const display = {
-    x: screen.x + 6,
-    y: screen.y + 6,
-    w: screen.w - 12,
-    h: screen.h - 12 - barHeight,
-  };
+  // 1. Draw UI (Header/Footer/Icons)
+  if (options?.uiRenderer) {
+    // Map UI state to renderer selection
+    let selection = -1;
+    if (ui.scene === 'Home') selection = ui.menuIndex; // TODO: Map menuIndex to icon index accurately
+    options.uiRenderer.setSelectedIcon(selection);
+    options.uiRenderer.draw(ctx, state);
+  }
 
-  drawScreen(ctx, screen);
-
-  drawScene(ctx, state, ui, display, now, options);
-  drawBottomBar(ctx, ui, bar);
+  // 2. Main Scene (Sprite)
+  if (ui.scene === 'Home') {
+    if (options?.spriteRenderer) {
+      options.spriteRenderer.draw(ctx);
+    }
+  } else {
+    // Other scenes (Menus, Minigames)
+    // Use legacy drawing for menus for now, adapted to overlays
+    const display = { x: 0, y: 20, w: width, h: height - 40 }; // Adjusted to fit between header/footer
+    drawScene(ctx, state, ui, display, now, options);
+  }
 }
 
 function drawFrame(ctx: CanvasRenderingContext2D, width: number, height: number): void {
@@ -454,7 +460,12 @@ function wrapText(
 
 type Rect = { x: number; y: number; w: number; h: number };
 
+import { SpriteRenderer } from './renderer/SpriteRenderer';
+import { UIRenderer } from './renderer/UIRenderer';
+
 export type RenderOptions = {
   minigameFrame?: HTMLCanvasElement | null;
   petSprite?: HTMLImageElement | null;
+  spriteRenderer?: SpriteRenderer;
+  uiRenderer?: UIRenderer;
 };
