@@ -39,3 +39,14 @@ Ejecutar desde la raíz del proyecto:
 
 2.  **Determinismo**:
     - La lógica del core debe ser determinista para facilitar el testing y la consistencia.
+
+## Controles (UI retro)
+
+La UI usa tres botones tipo tamagotchi y un boton de regreso:
+
+- Izquierda: `ArrowLeft` (boton A)
+- Derecha: `ArrowRight` (boton B)
+- Confirmar: `Enter` (boton C)
+- Volver: `Escape`
+
+Si agregas un sprite basado en `descarga.jpg`, coloca el archivo en `apps/web/public/descarga.jpg` para que el renderer lo cargue automaticamente.

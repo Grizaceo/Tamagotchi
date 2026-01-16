@@ -1,4 +1,6 @@
+// Deprecated: minigame selection is handled by the retro UI.
 import { Scene } from './Scene';
+import type { InputCommand } from '../Input';
 
 export class MinigameSelect extends Scene {
     private selectedIndex = 0;
@@ -32,16 +34,16 @@ export class MinigameSelect extends Scene {
         ctx.fillText('Arrows to select - Enter to play - ESC back', canvas.width / 2, 220);
     }
 
-    handleInput(e: KeyboardEvent) {
-        if (e.key === 'ArrowUp') {
+    handleInput(command: InputCommand) {
+        if (command === 'LEFT') {
             this.selectedIndex = (this.selectedIndex - 1 + this.options.length) % this.options.length;
-        } else if (e.key === 'ArrowDown') {
+        } else if (command === 'RIGHT') {
             this.selectedIndex = (this.selectedIndex + 1) % this.options.length;
-        } else if (e.key === 'Enter') {
+        } else if (command === 'ENTER') {
             const scene = this.selectedIndex === 0 ? 'pudding-game' : 'memory-game';
             this.context.onSceneChange(scene);
-        } else if (e.key === 'Escape') {
-            this.context.onSceneChange('main');
+        } else if (command === 'BACK') {
+            this.context.onSceneChange('select');
         }
     }
 }

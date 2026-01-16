@@ -1,17 +1,19 @@
 import { Scene } from './scenes/Scene';
 import type { SceneContext } from './scenes/Scene';
+import type { InputCommand } from './Input';
 
 export class SceneManager {
     private currentScene: Scene | null = null;
     private scenes: Map<string, new (ctx: SceneContext) => Scene> = new Map();
     private context: SceneContext;
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, onSceneChange?: (sceneName: string) => void) {
         const ctx = canvas.getContext('2d')!;
+        const handler = onSceneChange ?? ((name: string) => this.switchScene(name));
         this.context = {
             canvas,
             ctx,
-            onSceneChange: (name) => this.switchScene(name),
+            onSceneChange: handler,
         };
     }
 
@@ -44,9 +46,13 @@ export class SceneManager {
         }
     }
 
-    handleInput(e: KeyboardEvent) {
+    handleInput(command: InputCommand) {
         if (this.currentScene) {
-            this.currentScene.handleInput(e);
+            this.currentScene.handleInput(command);
         }
+    }
+
+    setOnGameComplete(handler: SceneContext['onGameComplete']) {
+        this.context.onGameComplete = handler;
     }
 }

@@ -1,4 +1,6 @@
+// Deprecated: replaced by the retro UI flow in GameLoop + Render.
 import { Scene } from './Scene';
+import type { InputCommand } from '../Input';
 
 export class MainScene extends Scene {
     init() {
@@ -21,9 +23,9 @@ export class MainScene extends Scene {
         ctx.fillText('Press [M] for Minigames', canvas.width / 2, 120);
     }
 
-    handleInput(e: KeyboardEvent) {
-        if (e.key.toLowerCase() === 'm') {
-            this.context.onSceneChange('minigame-select');
+    handleInput(command: InputCommand) {
+        if (command === 'ENTER') {
+            this.context.onSceneChange('select');
         }
     }
 }

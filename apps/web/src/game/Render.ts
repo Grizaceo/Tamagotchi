@@ -1,6 +1,6 @@
 import type { PetState } from '@pompom/core';
 import { getGiftById } from '@pompom/core';
-import { ALBUM_PAGE_SIZE, BOTTOM_MENU, CARE_ACTIONS, getMenuIndex, SETTINGS_ITEMS } from './Scenes';
+import { ALBUM_PAGE_SIZE, BOTTOM_MENU, CARE_ACTIONS, getMenuIndex, MINIGAMES, SETTINGS_ITEMS } from './Scenes';
 import type { UiState } from './Scenes';
 
 const PALETTE = {
@@ -19,7 +19,8 @@ export function renderFrame(
   ctx: CanvasRenderingContext2D,
   state: PetState,
   ui: UiState,
-  now: number
+  now: number,
+  options?: RenderOptions
 ): void {
   const width = ctx.canvas.width;
   const height = ctx.canvas.height;
@@ -41,7 +42,7 @@ export function renderFrame(
 
   drawScreen(ctx, screen);
 
-  drawScene(ctx, state, ui, display, now);
+  drawScene(ctx, state, ui, display, now, options);
   drawBottomBar(ctx, ui, bar);
 }
 
@@ -77,7 +78,8 @@ function drawScene(
   state: PetState,
   ui: UiState,
   display: Rect,
-  now: number
+  now: number,
+  options?: RenderOptions
 ): void {
   ctx.save();
   ctx.beginPath();
@@ -98,7 +100,7 @@ function drawScene(
 
   switch (ui.scene) {
     case 'Home':
-      drawHome(ctx, state, body, now);
+      drawHome(ctx, state, body, now, options?.petSprite ?? null);
       break;
     case 'CareMenu':
       drawCareMenu(ctx, ui, body);
@@ -113,7 +115,7 @@ function drawScene(
       drawSettings(ctx, state, ui, body);
       break;
     case 'Minigames':
-      drawMinigames(ctx, body);
+      drawMinigames(ctx, ui, body, options?.minigameFrame ?? null);
       break;
   }
 
@@ -129,11 +131,17 @@ function drawHeader(ctx: CanvasRenderingContext2D, title: string, area: Rect): v
   ctx.fillText(title.toUpperCase(), area.x + 6, area.y + area.h / 2);
 }
 
-function drawHome(ctx: CanvasRenderingContext2D, state: PetState, area: Rect, now: number): void {
+function drawHome(
+  ctx: CanvasRenderingContext2D,
+  state: PetState,
+  area: Rect,
+  now: number,
+  petSprite: HTMLImageElement | null
+): void {
   drawStats(ctx, state, { x: area.x, y: area.y, w: area.w, h: 24 });
 
   const petArea = { x: area.x, y: area.y + 28, w: area.w, h: area.h - 40 };
-  drawPet(ctx, state, petArea, now);
+  drawPet(ctx, state, petArea, now, petSprite);
 
   ctx.fillStyle = PALETTE.inkSoft;
   ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
@@ -181,7 +189,13 @@ function drawStatBar(
   ctx.fillText(label, x + 2, y - 7);
 }
 
-function drawPet(ctx: CanvasRenderingContext2D, state: PetState, area: Rect, now: number): void {
+function drawPet(
+  ctx: CanvasRenderingContext2D,
+  state: PetState,
+  area: Rect,
+  now: number,
+  petSprite: HTMLImageElement | null
+): void {
   const allowMotion = state.settings.animationsEnabled && !state.settings.reducedMotion;
   const bob = allowMotion ? Math.sin(now / 250) * 2 : 0;
   const blink = allowMotion ? Math.floor(now / 900) % 6 === 0 : false;
@@ -189,26 +203,38 @@ function drawPet(ctx: CanvasRenderingContext2D, state: PetState, area: Rect, now
   const centerX = area.x + area.w / 2;
   const centerY = area.y + area.h / 2 + bob;
 
-  ctx.fillStyle = PALETTE.inkSoft;
-  ctx.beginPath();
-  ctx.ellipse(centerX, centerY, 26, 22, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = PALETTE.screen;
-  ctx.beginPath();
-  ctx.ellipse(centerX, centerY + 4, 20, 14, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = PALETTE.ink;
-  if (!blink) {
-    ctx.fillRect(centerX - 8, centerY - 6, 4, 4);
-    ctx.fillRect(centerX + 4, centerY - 6, 4, 4);
+  if (petSprite && petSprite.complete && petSprite.naturalWidth > 0) {
+    const maxW = area.w * 0.7;
+    const maxH = area.h * 0.7;
+    const scale = Math.min(maxW / petSprite.naturalWidth, maxH / petSprite.naturalHeight);
+    const drawW = petSprite.naturalWidth * scale;
+    const drawH = petSprite.naturalHeight * scale;
+    const x = centerX - drawW / 2;
+    const y = centerY - drawH / 2;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(petSprite, x, y, drawW, drawH);
   } else {
-    ctx.fillRect(centerX - 8, centerY - 4, 4, 2);
-    ctx.fillRect(centerX + 4, centerY - 4, 4, 2);
-  }
+    ctx.fillStyle = PALETTE.inkSoft;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, 26, 22, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-  ctx.fillRect(centerX - 2, centerY + 2, 4, 3);
+    ctx.fillStyle = PALETTE.screen;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + 4, 20, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = PALETTE.ink;
+    if (!blink) {
+      ctx.fillRect(centerX - 8, centerY - 6, 4, 4);
+      ctx.fillRect(centerX + 4, centerY - 6, 4, 4);
+    } else {
+      ctx.fillRect(centerX - 8, centerY - 4, 4, 2);
+      ctx.fillRect(centerX + 4, centerY - 4, 4, 2);
+    }
+
+    ctx.fillRect(centerX - 2, centerY + 2, 4, 3);
+  }
 
   ctx.fillStyle = PALETTE.inkSoft;
   ctx.font = '8px "Cascadia Mono", "Courier New", monospace';
@@ -330,11 +356,38 @@ function getSettingValue(id: string, state: PetState): string {
   }
 }
 
-function drawMinigames(ctx: CanvasRenderingContext2D, area: Rect): void {
+function drawMinigames(
+  ctx: CanvasRenderingContext2D,
+  ui: UiState,
+  area: Rect,
+  minigameFrame: HTMLCanvasElement | null
+): void {
   ctx.fillStyle = PALETTE.inkSoft;
   ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
   ctx.textBaseline = 'top';
-  ctx.fillText('Mini games coming soon.', area.x + 6, area.y + 6);
+
+  if (ui.minigameMode === 'playing' && minigameFrame) {
+    const scale = Math.min(area.w / minigameFrame.width, area.h / minigameFrame.height);
+    const drawW = minigameFrame.width * scale;
+    const drawH = minigameFrame.height * scale;
+    const x = area.x + (area.w - drawW) / 2;
+    const y = area.y + (area.h - drawH) / 2;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(minigameFrame, x, y, drawW, drawH);
+    return;
+  }
+
+  ctx.fillText('Select a minigame', area.x + 6, area.y + 6);
+  MINIGAMES.forEach((game, index) => {
+    const y = area.y + 28 + index * 16;
+    const selected = index === ui.minigameIndex;
+    ctx.fillStyle = selected ? PALETTE.accent : PALETTE.inkSoft;
+    ctx.fillText(selected ? `> ${game.label}` : `  ${game.label}`, area.x + 6, y);
+  });
+
+  ctx.fillStyle = PALETTE.ink;
+  ctx.fillText('LEFT/RIGHT to choose', area.x + 6, area.y + area.h - 26);
+  ctx.fillText('ENTER to play - BACK to exit', area.x + 6, area.y + area.h - 14);
 }
 
 function drawBottomBar(ctx: CanvasRenderingContext2D, ui: UiState, bar: Rect): void {
@@ -400,3 +453,8 @@ function wrapText(
 }
 
 type Rect = { x: number; y: number; w: number; h: number };
+
+export type RenderOptions = {
+  minigameFrame?: HTMLCanvasElement | null;
+  petSprite?: HTMLImageElement | null;
+};

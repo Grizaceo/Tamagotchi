@@ -2,74 +2,91 @@ import {
   createAction,
   createInitialPetState,
   deserializeFromJSON,
-  evaluateGiftUnlocks,
+  postProcessState,
   reduce,
   serializeToJSON,
   tick,
   type PetState,
 } from '@pompom/core';
+import { bindInput, type InputCommand } from './Input';
+import { renderFrame } from './Render';
 import { SceneManager } from './SceneManager';
-import { MainScene } from './scenes/MainScene';
-import { MinigameSelect } from './scenes/MinigameSelect';
-import { PuddingGame } from './scenes/PuddingGame';
 import { MemoryGame } from './scenes/MemoryGame';
-import type { MinigameResult } from './scenes/Scene';
+import { PuddingGame } from './scenes/PuddingGame';
+import {
+  ALBUM_PAGE_SIZE,
+  BOTTOM_MENU,
+  CARE_ACTIONS,
+  MINIGAMES,
+  SETTINGS_ITEMS,
+  createInitialUiState,
+  wrapIndex,
+  type SceneId,
+} from './Scenes';
 
 const STORAGE_KEY = 'pompom-save';
 const TICK_MS = 1000;
 const SAVE_INTERVAL_MS = 5000;
 
 /**
- * Inicia el game loop principal con SceneManager
- * Maneja: ticks de juego, persistencia, transiciones de escenas, rewards
+ * Inicia el game loop principal con UI retro.
+ * Maneja ticks, persistencia, input y minijuegos.
  */
 export function startGameLoop(canvas: HTMLCanvasElement): () => void {
-  const sceneManager = new SceneManager(canvas);
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingEnabled = false;
 
-  // Registrar todas las escenas
-  sceneManager.registerScene('main', MainScene);
-  sceneManager.registerScene('minigame-select', MinigameSelect);
-  sceneManager.registerScene('pudding-game', PuddingGame);
-  sceneManager.registerScene('memory-game', MemoryGame);
+  const minigameCanvas = document.createElement('canvas');
+  minigameCanvas.width = 320;
+  minigameCanvas.height = 240;
+
+  const minigameManager = new SceneManager(minigameCanvas, (sceneName) => {
+    if (sceneName === 'select') {
+      uiState.minigameMode = 'select';
+      return;
+    }
+    minigameManager.switchScene(sceneName);
+  });
+
+  minigameManager.registerScene('pudding-game', PuddingGame);
+  minigameManager.registerScene('memory-game', MemoryGame);
 
   let petState = loadState();
+  let uiState = createInitialUiState();
   let lastTime = performance.now();
   let accumulator = 0;
   let lastSaveAt = 0;
   let pendingSave = false;
   let rafId = 0;
 
-  // Iniciar en MainScene
-  sceneManager.switchScene('main');
+  let petSprite: HTMLImageElement | null = null;
+  const spriteImage = new Image();
+  spriteImage.src = '/descarga.jpg';
+  spriteImage.onload = () => {
+    petSprite = spriteImage;
+  };
 
-  // Vincular evento de game complete (minijuego terminado)
-  const onGameComplete = (result: MinigameResult) => {
+  minigameManager.setOnGameComplete((result) => {
     const action = createAction('PLAY_MINIGAME', petState.totalTicks, {
       gameId: result.gameId,
       result: result.result,
       score: result.score || 0,
     });
     petState = reduce(petState, action);
+    petState = postProcessState(petState);
     pendingSave = true;
-    // Volver a MainScene después de procesar reward
-    setTimeout(() => {
-      sceneManager.switchScene('main');
-    }, 1000);
-  };
-
-  // Pasar callback a sceneManager context
-  (sceneManager as any).context.onGameComplete = onGameComplete;
+  });
 
   const loop = (now: number) => {
     const delta = now - lastTime;
     lastTime = now;
 
-    // Ticks de juego
     if (!petState.settings.paused) {
       const speedFactor = petState.settings.speed === '2x' ? 2 : 1;
       accumulator += delta * speedFactor;
       while (accumulator >= TICK_MS) {
-        petState = evaluateGiftUnlocks(tick(petState, 1));
+        petState = tick(petState, 1);
+        petState = postProcessState(petState);
         accumulator -= TICK_MS;
         pendingSave = true;
       }
@@ -77,11 +94,16 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
       accumulator = 0;
     }
 
-    // Actualizar y renderizar escena
-    sceneManager.update(delta);
-    sceneManager.draw();
+    if (uiState.scene === 'Minigames' && uiState.minigameMode === 'playing') {
+      minigameManager.update(delta);
+      minigameManager.draw();
+    }
 
-    // Guardar estado periódicamente
+    renderFrame(ctx, petState, uiState, now, {
+      minigameFrame: uiState.scene === 'Minigames' && uiState.minigameMode === 'playing' ? minigameCanvas : null,
+      petSprite,
+    });
+
     if (pendingSave && now - lastSaveAt > SAVE_INTERVAL_MS) {
       saveState(petState);
       lastSaveAt = now;
@@ -91,12 +113,129 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     rafId = requestAnimationFrame(loop);
   };
 
-  // Manejar input de teclado
-  const handleKeyDown = (e: KeyboardEvent) => {
-    sceneManager.handleInput(e);
+  const executeAction = (type: (typeof CARE_ACTIONS)[number]['type']) => {
+    const action = createAction(type, petState.totalTicks);
+    petState = reduce(petState, action);
+    petState = postProcessState(petState);
+    pendingSave = true;
   };
 
-  window.addEventListener('keydown', handleKeyDown);
+  const toggleSetting = (id: string) => {
+    const settings = petState.settings;
+    switch (id) {
+      case 'mute':
+        petState = { ...petState, settings: { ...settings, soundEnabled: !settings.soundEnabled } };
+        break;
+      case 'speed':
+        petState = { ...petState, settings: { ...settings, speed: settings.speed === '1x' ? '2x' : '1x' } };
+        break;
+      case 'pause':
+        petState = { ...petState, settings: { ...settings, paused: !settings.paused } };
+        break;
+      case 'reducedMotion':
+        petState = { ...petState, settings: { ...settings, reducedMotion: !settings.reducedMotion } };
+        break;
+      default:
+        break;
+    }
+    pendingSave = true;
+  };
+
+  const navigateAlbum = (direction: number) => {
+    const entries = Object.keys(petState.album);
+    if (entries.length === 0) return;
+
+    const currentIndex = uiState.albumPage * ALBUM_PAGE_SIZE + uiState.albumIndex;
+    const nextIndex = wrapIndex(currentIndex + direction, entries.length);
+    uiState.albumPage = Math.floor(nextIndex / ALBUM_PAGE_SIZE);
+    uiState.albumIndex = nextIndex % ALBUM_PAGE_SIZE;
+  };
+
+  const openScene = (scene: SceneId) => {
+    uiState.scene = scene;
+    if (scene === 'Minigames') {
+      uiState.minigameMode = 'select';
+    }
+  };
+
+  const handleCommand = (command: InputCommand) => {
+    if (uiState.scene === 'Minigames' && uiState.minigameMode === 'playing') {
+      minigameManager.handleInput(command);
+      return;
+    }
+
+    switch (uiState.scene) {
+      case 'Home':
+        if (command === 'LEFT') {
+          uiState.menuIndex = wrapIndex(uiState.menuIndex - 1, BOTTOM_MENU.length);
+        } else if (command === 'RIGHT') {
+          uiState.menuIndex = wrapIndex(uiState.menuIndex + 1, BOTTOM_MENU.length);
+        } else if (command === 'ENTER') {
+          openScene(BOTTOM_MENU[uiState.menuIndex].id);
+        }
+        break;
+      case 'CareMenu':
+        if (command === 'LEFT') {
+          uiState.careIndex = wrapIndex(uiState.careIndex - 1, CARE_ACTIONS.length);
+        } else if (command === 'RIGHT') {
+          uiState.careIndex = wrapIndex(uiState.careIndex + 1, CARE_ACTIONS.length);
+        } else if (command === 'ENTER') {
+          const selected = CARE_ACTIONS[uiState.careIndex];
+          executeAction(selected.type);
+        } else if (command === 'BACK') {
+          openScene('Home');
+        }
+        break;
+      case 'Gifts':
+        if (command === 'LEFT') {
+          uiState.giftIndex = wrapIndex(uiState.giftIndex - 1, petState.unlockedGifts.length);
+        } else if (command === 'RIGHT') {
+          uiState.giftIndex = wrapIndex(uiState.giftIndex + 1, petState.unlockedGifts.length);
+        } else if (command === 'BACK') {
+          openScene('Home');
+        }
+        break;
+      case 'Album':
+        if (command === 'LEFT') {
+          navigateAlbum(-1);
+        } else if (command === 'RIGHT') {
+          navigateAlbum(1);
+        } else if (command === 'BACK') {
+          openScene('Home');
+        }
+        break;
+      case 'Settings':
+        if (command === 'LEFT') {
+          uiState.settingsIndex = wrapIndex(uiState.settingsIndex - 1, SETTINGS_ITEMS.length);
+        } else if (command === 'RIGHT') {
+          uiState.settingsIndex = wrapIndex(uiState.settingsIndex + 1, SETTINGS_ITEMS.length);
+        } else if (command === 'ENTER') {
+          toggleSetting(['mute', 'speed', 'pause', 'reducedMotion'][uiState.settingsIndex]);
+        } else if (command === 'BACK') {
+          openScene('Home');
+        }
+        break;
+      case 'Minigames':
+        if (uiState.minigameMode === 'select') {
+          if (command === 'LEFT') {
+            uiState.minigameIndex = wrapIndex(uiState.minigameIndex - 1, MINIGAMES.length);
+          } else if (command === 'RIGHT') {
+            uiState.minigameIndex = wrapIndex(uiState.minigameIndex + 1, MINIGAMES.length);
+          } else if (command === 'ENTER') {
+            const selected = MINIGAMES[uiState.minigameIndex];
+            uiState.minigameMode = 'playing';
+            minigameManager.switchScene(selected.scene);
+          } else if (command === 'BACK') {
+            openScene('Home');
+          }
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  const unbindInput = bindInput(handleCommand);
 
   const beforeUnload = () => {
     saveState(petState);
@@ -106,7 +245,7 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
   rafId = requestAnimationFrame(loop);
 
   return () => {
-    window.removeEventListener('keydown', handleKeyDown);
+    unbindInput();
     window.removeEventListener('beforeunload', beforeUnload);
     cancelAnimationFrame(rafId);
   };

@@ -1,4 +1,5 @@
 import { Scene } from './Scene';
+import type { InputCommand } from '../Input';
 
 export class MemoryGame extends Scene {
     private cards: { id: number; symbol: string; flipped: boolean; matched: boolean }[] = [];
@@ -90,17 +91,15 @@ export class MemoryGame extends Scene {
     private selectionIndex = 0;
     private getCurrentSelectionIndex() { return this.selectionIndex; }
 
-    handleInput(e: KeyboardEvent) {
+    handleInput(command: InputCommand) {
         if (this.gameState !== 'playing') {
-            if (e.key === 'Enter') this.context.onSceneChange('minigame-select');
+            if (command === 'ENTER') this.context.onSceneChange('select');
             return;
         }
 
-        if (e.key === 'ArrowRight') this.selectionIndex = (this.selectionIndex + 1) % 4;
-        else if (e.key === 'ArrowLeft') this.selectionIndex = (this.selectionIndex - 1 + 4) % 4;
-        else if (e.key === 'ArrowDown') this.selectionIndex = (this.selectionIndex + 2) % 4;
-        else if (e.key === 'ArrowUp') this.selectionIndex = (this.selectionIndex - 2 + 4) % 4;
-        else if (e.key === 'Enter') {
+        if (command === 'RIGHT') this.selectionIndex = (this.selectionIndex + 1) % 4;
+        else if (command === 'LEFT') this.selectionIndex = (this.selectionIndex - 1 + 4) % 4;
+        else if (command === 'ENTER') {
             const card = this.cards[this.selectionIndex];
             if (card.matched || card.flipped) return;
 
@@ -123,8 +122,8 @@ export class MemoryGame extends Scene {
                     }, 500);
                 }
             }
-        } else if (e.key === 'Escape') {
-            this.context.onSceneChange('minigame-select');
+        } else if (command === 'BACK') {
+            this.context.onSceneChange('select');
         }
     }
 }

@@ -1,4 +1,5 @@
 import { Scene } from './Scene';
+import type { InputCommand } from '../Input';
 
 export class PuddingGame extends Scene {
     private pos = 0;
@@ -67,8 +68,8 @@ export class PuddingGame extends Scene {
         }
     }
 
-    handleInput(e: KeyboardEvent) {
-        if (e.key === 'Enter') {
+    handleInput(command: InputCommand) {
+        if (command === 'ENTER') {
             if (this.gameState === 'playing') {
                 const targetMin = 0.5 - (20 / 200); // 40px width / 200px bar
                 const targetMax = 0.5 + (20 / 200);
@@ -95,10 +96,10 @@ export class PuddingGame extends Scene {
                     this.context.onGameComplete({ gameId: 'pudding', result });
                 }
             } else {
-                this.context.onSceneChange('minigame-select');
+                this.context.onSceneChange('select');
             }
-        } else if (e.key === 'Escape') {
-            this.context.onSceneChange('minigame-select');
+        } else if (command === 'BACK') {
+            this.context.onSceneChange('select');
         }
     }
 }

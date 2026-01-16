@@ -2,6 +2,8 @@ import type { ActionType } from '@pompom/core';
 
 export type SceneId = 'Home' | 'CareMenu' | 'Gifts' | 'Album' | 'Settings' | 'Minigames';
 
+export type MinigameMode = 'select' | 'playing';
+
 export interface UiState {
   scene: SceneId;
   menuIndex: number;
@@ -10,6 +12,8 @@ export interface UiState {
   albumIndex: number;
   albumPage: number;
   settingsIndex: number;
+  minigameIndex: number;
+  minigameMode: MinigameMode;
 }
 
 export const BOTTOM_MENU: Array<{ id: SceneId; label: string; icon: string }> = [
@@ -38,6 +42,11 @@ export const SETTINGS_ITEMS = [
 
 export const ALBUM_PAGE_SIZE = 4;
 
+export const MINIGAMES = [
+  { id: 'pudding', label: 'Pudding Catch', scene: 'pudding-game' },
+  { id: 'memory', label: 'Memory 2x2', scene: 'memory-game' },
+];
+
 export function createInitialUiState(): UiState {
   return {
     scene: 'Home',
@@ -47,6 +56,8 @@ export function createInitialUiState(): UiState {
     albumIndex: 0,
     albumPage: 0,
     settingsIndex: 0,
+    minigameIndex: 0,
+    minigameMode: 'select',
   };
 }
 
