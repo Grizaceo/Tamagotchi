@@ -1,13 +1,23 @@
 import { AssetManager } from './SpriteRenderer';
-import { PetState } from '@pompom/core';
+import type { PetState } from '@pompom/core';
 
 export class UIRenderer {
     private assetManager: AssetManager;
     private iconSrc: string = '/assets/retro_ui_icons_1768544742647.png';
 
-    // Icon Layout in the strip: 
+    // Icon Layout in the strip:
     // 0: Food, 1: Light, 2: Play, 3: Medicine, 4: Toilet, 5: Stats, 6: Discipline, 7: Gift, 8: Album
     private ICONS = ['food', 'light', 'play', 'medicine', 'toilet', 'stats', 'discipline', 'gift', 'album'];
+
+    // Icon spritesheet is 1024x1024 with icons in horizontal strip near vertical center
+    // The strip spans roughly y=472-535 (height ~63px), icons spaced ~110px apart
+    private iconSourceWidth: number = 110; // Width per icon slot (including spacing)
+    private iconSourceHeight: number = 63; // Height of icon area
+    private iconSourceY: number = 472; // Y offset where icons begin in spritesheet
+    private iconSourceStartX: number = 30; // X offset for first icon
+
+    // Display size on canvas
+    private iconDisplaySize: number = 28;
 
     private selectedIconIndex: number = -1; // -1 means no menu selection active
 
@@ -40,38 +50,46 @@ export class UIRenderer {
         ctx.textAlign = 'right';
         // Clock placeholder
         const time = Math.floor(state.totalTicks / 60); // minutes
-        ctx.fillText(\`\${time}m\`, 310, 15);
+        ctx.fillText(`${time}m`, 310, 15);
 
-    // Status icons (simple text fallback for now if sick/hungry)
-    ctx.textAlign = 'left';
-    let statusText = '';
-    if (state.stats.health < 30) statusText += 'Sick ';
-    if (state.stats.hunger > 70) statusText += 'Hungry ';
-    if (statusText) {
-        ctx.fillStyle = '#FF5252';
-        ctx.fillText(statusText, 10, 15);
-    }
-  }
-
-  private drawFooter(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
-    const iconSize = 24; // Source size
-    const displaySize = 24; 
-    const padding = 8;
-    const startX = (320 - (this.ICONS.length * (displaySize + padding))) / 2;
-    const y = 240 - 30; // Bottom 30px
-
-    this.ICONS.forEach((icon, index) => {
-        const x = startX + index * (displaySize + padding);
-        
-        // Highlight if selected
-        if (index === this.selectedIconIndex) {
-            ctx.fillStyle = '#FFD94A'; // Highlight color
-            ctx.fillRect(x - 2, y - 2, displaySize + 4, displaySize + 4);
+        // Status icons (simple text fallback for now if sick/hungry)
+        ctx.textAlign = 'left';
+        let statusText = '';
+        if (state.stats.health < 30) statusText += 'Sick ';
+        if (state.stats.hunger > 70) statusText += 'Hungry ';
+        if (statusText) {
+            ctx.fillStyle = '#FF5252';
+            ctx.fillText(statusText, 10, 15);
         }
+    }
 
-        // Draw Icon
-        // Assuming horizontal strip
-        ctx.drawImage(img, index * iconSize, 0, iconSize, iconSize, x, y, displaySize, displaySize);
-    });
-  }
+    private drawFooter(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
+        const padding = 4;
+        const startX = (320 - (this.ICONS.length * (this.iconDisplaySize + padding))) / 2;
+        const y = 240 - 35; // Bottom area
+
+        this.ICONS.forEach((_, index) => {
+            const x = startX + index * (this.iconDisplaySize + padding);
+
+            // Highlight if selected
+            if (index === this.selectedIconIndex) {
+                ctx.fillStyle = '#FFD94A'; // Highlight color
+                ctx.fillRect(x - 2, y - 2, this.iconDisplaySize + 4, this.iconDisplaySize + 4);
+            }
+
+            // Draw Icon from horizontal strip in the spritesheet
+            // Icons are positioned at y=478 in the source image, spaced ~100px apart
+            const srcX = this.iconSourceStartX + index * this.iconSourceWidth;
+            const srcY = this.iconSourceY;
+
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(
+                img,
+                srcX, srcY,
+                this.iconSourceWidth, this.iconSourceHeight,
+                x, y,
+                this.iconDisplaySize, this.iconDisplaySize
+            );
+        });
+    }
 }
