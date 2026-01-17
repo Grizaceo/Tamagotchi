@@ -5,14 +5,19 @@ export class UIRenderer {
     private assetManager: AssetManager;
     private iconSrc: string = '/assets/retro_ui_icons_1768544742647.png';
 
-    // Icon Layout in the strip: 
+    // Icon Layout in the strip:
     // 0: Food, 1: Light, 2: Play, 3: Medicine, 4: Toilet, 5: Stats, 6: Discipline, 7: Gift, 8: Album
     private ICONS = ['food', 'light', 'play', 'medicine', 'toilet', 'stats', 'discipline', 'gift', 'album'];
-    
-    // Source size in the spritesheet (each icon's actual dimension)
-    private iconSourceSize: number = 32; // Estimated from spritesheet
+
+    // Icon spritesheet is 1024x1024 with icons in horizontal strip near vertical center
+    // The strip spans roughly y=472-535 (height ~63px), icons spaced ~110px apart
+    private iconSourceWidth: number = 110; // Width per icon slot (including spacing)
+    private iconSourceHeight: number = 63; // Height of icon area
+    private iconSourceY: number = 472; // Y offset where icons begin in spritesheet
+    private iconSourceStartX: number = 30; // X offset for first icon
+
     // Display size on canvas
-    private iconDisplaySize: number = 24;
+    private iconDisplaySize: number = 28;
 
     private selectedIconIndex: number = -1; // -1 means no menu selection active
 
@@ -59,28 +64,29 @@ export class UIRenderer {
     }
 
     private drawFooter(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
-        const padding = 8;
+        const padding = 4;
         const startX = (320 - (this.ICONS.length * (this.iconDisplaySize + padding))) / 2;
-        const y = 240 - 30; // Bottom 30px
+        const y = 240 - 35; // Bottom area
 
         this.ICONS.forEach((_, index) => {
             const x = startX + index * (this.iconDisplaySize + padding);
-            
+
             // Highlight if selected
             if (index === this.selectedIconIndex) {
                 ctx.fillStyle = '#FFD94A'; // Highlight color
                 ctx.fillRect(x - 2, y - 2, this.iconDisplaySize + 4, this.iconDisplaySize + 4);
             }
 
-            // Draw Icon from horizontal strip
-            // Source: read from left to right, each icon is iconSourceSize wide
-            const srcX = index * this.iconSourceSize;
-            const srcY = 0;
-            
+            // Draw Icon from horizontal strip in the spritesheet
+            // Icons are positioned at y=478 in the source image, spaced ~100px apart
+            const srcX = this.iconSourceStartX + index * this.iconSourceWidth;
+            const srcY = this.iconSourceY;
+
+            ctx.imageSmoothingEnabled = false;
             ctx.drawImage(
                 img,
                 srcX, srcY,
-                this.iconSourceSize, this.iconSourceSize,
+                this.iconSourceWidth, this.iconSourceHeight,
                 x, y,
                 this.iconDisplaySize, this.iconDisplaySize
             );

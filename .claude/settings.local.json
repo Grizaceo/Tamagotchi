@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter @pompom/web exec:*)",
+      "Bash(pnpm build:*)"
+    ]
+  }
+}

@@ -37,6 +37,8 @@ export class SpriteRenderer {
     public x: number = 0;
     public y: number = 0;
     public flipX: boolean = false;
+    // Display size on canvas (sprites will be scaled from gridSize to displaySize)
+    public displaySize: number = 80;
 
     constructor(assetManager: AssetManager, assetKey: string, config: SpriteConfig) {
         this.assetManager = assetManager;
@@ -89,22 +91,23 @@ export class SpriteRenderer {
 
         const row = animConfig.row;
         const col = this.frameIndex;
-        const size = this.config.gridSize;
+        const srcSize = this.config.gridSize;
+        const dstSize = this.displaySize;
 
-        const srcX = col * size;
-        const srcY = row * size;
+        const srcX = col * srcSize;
+        const srcY = row * srcSize;
 
         ctx.save();
-        // Pixel art scaling
+        // Pixel art scaling - keep crisp edges
         ctx.imageSmoothingEnabled = false;
 
         if (this.flipX) {
-            ctx.translate(this.x + size, this.y);
+            ctx.translate(this.x + dstSize, this.y);
             ctx.scale(-1, 1);
-            ctx.drawImage(img, srcX, srcY, size, size, 0, 0, size, size);
+            ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, dstSize, dstSize);
         } else {
             ctx.translate(this.x, this.y);
-            ctx.drawImage(img, srcX, srcY, size, size, 0, 0, size, size);
+            ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, dstSize, dstSize);
         }
 
         ctx.restore();

@@ -88,9 +88,11 @@ export async function startGameLoop(canvas: HTMLCanvasElement): Promise<() => vo
 
     if (!spriteRenderer || spriteRenderer.assetKey !== species) {
       spriteRenderer = new SpriteRenderer(assetManager, species, config);
-      // Center sprite roughly
-      spriteRenderer.x = (320 - 48) / 2;
-      spriteRenderer.y = (240 - 48) / 2 + 20; // A bit lower than center
+      // Scale sprite to fit on 320x240 canvas - 96px gives good visibility
+      spriteRenderer.displaySize = 96;
+      // Center sprite on screen (account for header ~20px and footer ~35px)
+      spriteRenderer.x = (320 - spriteRenderer.displaySize) / 2;
+      spriteRenderer.y = 20 + ((240 - 20 - 35 - spriteRenderer.displaySize) / 2); // Center in play area
     }
 
     // Update Animation State based on PetState
@@ -144,9 +146,9 @@ export async function startGameLoop(canvas: HTMLCanvasElement): Promise<() => vo
       minigameManager.draw();
     }
 
-    // Update Sprite System
+    // Update Sprite System - always call updateSpriteRenderer to ensure it gets created
+    updateSpriteRenderer(petState);
     if (spriteRenderer) {
-      updateSpriteRenderer(petState);
       spriteRenderer.update(delta);
     }
 
