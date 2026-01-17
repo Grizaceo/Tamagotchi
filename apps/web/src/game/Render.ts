@@ -1,6 +1,6 @@
 import type { PetState } from '@pompom/core';
 import { getGiftById } from '@pompom/core';
-import { ALBUM_PAGE_SIZE, BOTTOM_MENU, CARE_ACTIONS, getMenuIndex, MINIGAMES, SETTINGS_ITEMS } from './Scenes';
+import { ALBUM_PAGE_SIZE, CARE_ACTIONS, MINIGAMES, SETTINGS_ITEMS } from './Scenes';
 import type { UiState } from './Scenes';
 
 const PALETTE = {
@@ -52,6 +52,7 @@ export function renderFrame(
   }
 }
 
+/*
 function drawFrame(ctx: CanvasRenderingContext2D, width: number, height: number): void {
   ctx.fillStyle = PALETTE.frameShadow;
   ctx.fillRect(0, 0, width, height);
@@ -78,6 +79,7 @@ function drawScreen(ctx: CanvasRenderingContext2D, screen: Rect): void {
     ctx.stroke();
   }
 }
+*/
 
 function drawScene(
   ctx: CanvasRenderingContext2D,
@@ -396,6 +398,7 @@ function drawMinigames(
   ctx.fillText('ENTER to play - BACK to exit', area.x + 6, area.y + area.h - 14);
 }
 
+/*
 function drawBottomBar(ctx: CanvasRenderingContext2D, ui: UiState, bar: Rect): void {
   ctx.fillStyle = PALETTE.screenShade;
   ctx.fillRect(bar.x, bar.y, bar.w, bar.h);
@@ -428,6 +431,7 @@ function drawBottomBar(ctx: CanvasRenderingContext2D, ui: UiState, bar: Rect): v
 
   ctx.textAlign = 'start';
 }
+*/
 
 function wrapText(
   ctx: CanvasRenderingContext2D,

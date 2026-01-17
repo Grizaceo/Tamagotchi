@@ -6,8 +6,8 @@ if (!canvas) {
   throw new Error('Canvas #screen not found');
 }
 
-const stop = startGameLoop(canvas);
-
-if (import.meta.hot) {
-  import.meta.hot.dispose(() => stop());
-}
+startGameLoop(canvas).then(stop => {
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => stop());
+  }
+});

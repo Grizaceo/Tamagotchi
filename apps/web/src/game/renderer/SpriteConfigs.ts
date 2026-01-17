@@ -1,14 +1,14 @@
-import { SpriteConfig } from './SpriteRenderer';
+import type { SpriteConfig } from './SpriteRenderer';
 
 const COMMON_ANIMATIONS = {
-    idle: { row: 0, frames: 2, loop: true, speed: 2 },
+    idle: { row: 0, frames: 4, loop: true, speed: 2 },
     walk: { row: 1, frames: 4, loop: true, speed: 4 },
     eat: { row: 2, frames: 4, loop: false, speed: 4 },
     happy: { row: 3, frames: 2, loop: true, speed: 4 },
-    sad: { row: 4, frames: 2, loop: true, speed: 2 },
-    sick: { row: 5, frames: 2, loop: true, speed: 1 },
+    sad: { row: 4, frames: 4, loop: true, speed: 2 },
+    sick: { row: 5, frames: 4, loop: true, speed: 1 },
     sleep: { row: 6, frames: 2, loop: true, speed: 1 },
-    evolve: { row: 0, frames: 2, loop: true, speed: 10 }, // Placeholder, uses Idle fast
+    evolve: { row: 0, frames: 4, loop: true, speed: 10 }, // Placeholder, uses Idle fast
 };
 
 export const SPRITE_CONFIGS: Record<string, SpriteConfig> = {

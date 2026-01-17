@@ -32,7 +32,7 @@ const SAVE_INTERVAL_MS = 5000;
  * Inicia el game loop principal con UI retro.
  * Maneja ticks, persistencia, input y minijuegos.
  */
-export function startGameLoop(canvas: HTMLCanvasElement): () => void {
+export async function startGameLoop(canvas: HTMLCanvasElement): Promise<() => void> {
   const ctx = canvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
 
@@ -109,7 +109,7 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     spriteRenderer.setAnimation(anim);
   }
 
-  let petSprite: HTMLImageElement | null = null; // Deprecated but kept for compatibility with old renderFrame signature if needed temporarily
+  // petSprite was deprecated in favor of SpriteRenderer
 
   minigameManager.setOnGameComplete((result) => {
     const action = createAction('PLAY_MINIGAME', petState.totalTicks, {

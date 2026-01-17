@@ -32,7 +32,7 @@ export class SpriteRenderer {
     private frameIndex: number = 0;
     private frameTimer: number = 0;
     private assetManager: AssetManager;
-    private assetKey: string;
+    private _assetKey: string;
 
     public x: number = 0;
     public y: number = 0;
@@ -40,8 +40,15 @@ export class SpriteRenderer {
 
     constructor(assetManager: AssetManager, assetKey: string, config: SpriteConfig) {
         this.assetManager = assetManager;
-        this.assetKey = assetKey;
+        this._assetKey = assetKey;
         this.config = config;
+    }
+
+    /**
+     * Getter para acceder al asset key de forma pública
+     */
+    get assetKey(): string {
+        return this._assetKey;
     }
 
     setAnimation(anim: AnimationState) {
