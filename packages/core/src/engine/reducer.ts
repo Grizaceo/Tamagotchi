@@ -150,19 +150,37 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
 
   const newState = structuredClone(state);
 
-  // Recompensas
-  if (result === 'perfect') {
-    newState.stats.happiness = clampStat(newState.stats.happiness + 25);
-    newState.stats.affection = clampStat(newState.stats.affection + 10);
-    newState.history.push(createEvent('MINIGAME_PERFECT', action.timestamp, { gameId, score }));
-  } else {
-    newState.stats.happiness = clampStat(newState.stats.happiness + 15);
-    newState.stats.affection = clampStat(newState.stats.affection + 5);
-    newState.history.push(createEvent('MINIGAME_WIN', action.timestamp, { gameId, score }));
+  // Actualizar estadísticas del juego específico
+  const validGameId = gameId as 'pudding' | 'memory';
+  if (newState.minigames.games[validGameId]) {
+    const gameStats = newState.minigames.games[validGameId];
+    gameStats.totalPlayed++;
+    gameStats.lastPlayed = state.totalTicks;
+
+    if (result === 'perfect') {
+      gameStats.totalPerfect++;
+      gameStats.totalWins++;
+      newState.stats.happiness = clampStat(newState.stats.happiness + 25);
+      newState.stats.affection = clampStat(newState.stats.affection + 10);
+      newState.history.push(createEvent('MINIGAME_PERFECT', action.timestamp, { gameId, score }));
+    } else if (result === 'win') {
+      gameStats.totalWins++;
+      newState.stats.happiness = clampStat(newState.stats.happiness + 15);
+      newState.stats.affection = clampStat(newState.stats.affection + 5);
+      newState.history.push(createEvent('MINIGAME_WIN', action.timestamp, { gameId, score }));
+    } else {
+      // Loss - pequeña recompensa por participar
+      newState.stats.happiness = clampStat(newState.stats.happiness + 5);
+      newState.history.push(createEvent('STAT_CHANGED', action.timestamp, { gameId, result: 'loss' }));
+    }
+
+    if (score > gameStats.bestScore) {
+      gameStats.bestScore = score;
+    }
   }
 
-  // Registrar último juego - typeguard
-  newState.minigames.lastPlayed[gameId as keyof typeof newState.minigames.lastPlayed] = state.totalTicks;
+  // Registrar último juego para cooldown
+  newState.minigames.lastPlayed[validGameId] = state.totalTicks;
 
   return newState;
 }

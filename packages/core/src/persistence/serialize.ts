@@ -28,8 +28,9 @@ export function serialize(state: PetState): SaveData {
       },
     },
     history: state.history.map((event) => ({
+      type: event.type,
       tick: event.timestamp,
-      statChanges: event.data as Record<string, number> | undefined,
+      data: event.data,
     })),
     unlockedGifts: state.unlockedGifts,
     unlockedAchievements: state.unlockedAchievements,
@@ -76,9 +77,9 @@ export function deserialize(data: SaveData): PetState {
     alive: data.state.alive ?? true,
     totalTicks: data.totalTicks ?? 0,
     history: data.history.map((h) => ({
-      type: 'STAT_CHANGED',
+      type: (h as any).type || 'STAT_CHANGED',
       timestamp: h.tick,
-      data: h.statChanges,
+      data: (h as any).data || h.statChanges,
     })),
     unlockedGifts: data.unlockedGifts ?? [],
     unlockedAchievements: data.unlockedAchievements ?? [],

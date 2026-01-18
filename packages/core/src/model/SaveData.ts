@@ -28,8 +28,10 @@ export interface SaveData {
     };
   };
   history: Array<{
+    type?: string;
     tick: number;
-    statChanges?: Record<string, number>;
+    data?: Record<string, unknown>;
+    statChanges?: Record<string, number>; // Legacy compatibility
   }>;
   unlockedGifts: string[];
   unlockedAchievements: string[];
