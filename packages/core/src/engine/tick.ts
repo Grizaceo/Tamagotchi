@@ -7,14 +7,15 @@ import { createEvent } from '../model/Events';
  * Determinista: solo depende de ticks, no de Date.now()
  * @param state Estado actual
  * @param tickCount Número de ticks a aplicar (ej: 1 tick = 1 segundo)
+ * @param mutate Si es true, modifica el estado in-place. Si es false, retorna una copia.
  * @returns Nuevo estado después del tick
  */
-export function tick(state: PetState, tickCount: number = 1): PetState {
+export function tick(state: PetState, tickCount: number = 1, mutate: boolean = false): PetState {
   if (!state.alive || tickCount <= 0) {
     return state;
   }
 
-  const newState = structuredClone(state);
+  const newState = mutate ? state : structuredClone(state);
   newState.totalTicks += tickCount;
 
   // Degradación de stats por tick (por segundo aproximadamente)
@@ -70,9 +71,10 @@ function getDegradationRate(difficulty: string, stat: 'hunger' | 'happiness' | '
  * Aplica múltiples ticks a un estado
  */
 export function tickMultiple(state: PetState, iterations: number, ticksPerIteration: number = 1): PetState {
-  let result = state;
+  let result = structuredClone(state);
   for (let i = 0; i < iterations; i++) {
-    result = tick(result, ticksPerIteration);
+    // Usamos mutate=true porque ya clonamos el estado al inicio
+    result = tick(result, ticksPerIteration, true);
     if (!result.alive) break;
   }
   return result;
