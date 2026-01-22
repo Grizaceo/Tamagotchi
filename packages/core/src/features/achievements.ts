@@ -10,6 +10,15 @@ export interface Achievement {
   icon: string;
 }
 
+/**
+ * Estadísticas optimizadas para evaluación de logros
+ */
+export interface AchievementStats {
+  actionCounts: Record<string, number>;
+  totalActions: number;
+  evolvedForms: Set<string>;
+}
+
 export const ACHIEVEMENT_CATALOG: Achievement[] = [
   {
     id: 'ach_caretaker',
@@ -60,7 +69,7 @@ export const ACHIEVEMENT_CATALOG: Achievement[] = [
  */
 export interface AchievementCondition {
   achievementId: string;
-  checkFn: (state: PetState) => boolean;
+  checkFn: (state: PetState, stats: AchievementStats) => boolean;
   description: string;
 }
 
@@ -71,33 +80,33 @@ export const ACHIEVEMENT_CONDITIONS: AchievementCondition[] = [
   {
     achievementId: 'ach_caretaker',
     description: 'Realiza 50+ acciones totales',
-    checkFn: (state) => getTotalActions(state) >= 50,
+    checkFn: (_state, stats) => stats.totalActions >= 50,
   },
 
   {
     achievementId: 'ach_perfect_pet',
     description: 'Especie actual es POMPOMPURIN',
-    checkFn: (state) =>
+    checkFn: (state, stats) =>
       state.species === 'POMPOMPURIN' ||
-      state.history.some((e) => e.type === 'EVOLVED' && (e.data as any)?.to === 'POMPOMPURIN'),
+      stats.evolvedForms.has('POMPOMPURIN'),
   },
 
   {
     achievementId: 'ach_foodie',
     description: 'Feed count >= 30',
-    checkFn: (state) => countActionType(state, 'FEED') >= 30,
+    checkFn: (_state, stats) => (stats.actionCounts['FEED'] || 0) >= 30,
   },
 
   {
     achievementId: 'ach_playmate',
     description: 'Play count >= 25',
-    checkFn: (state) => countActionType(state, 'PLAY') >= 25,
+    checkFn: (_state, stats) => (stats.actionCounts['PLAY'] || 0) >= 25,
   },
 
   {
     achievementId: 'ach_healer',
     description: 'Medicate count >= 10',
-    checkFn: (state) => countActionType(state, 'MEDICATE') >= 10,
+    checkFn: (_state, stats) => (stats.actionCounts['MEDICATE'] || 0) >= 10,
   },
 
   {
@@ -109,51 +118,62 @@ export const ACHIEVEMENT_CONDITIONS: AchievementCondition[] = [
   {
     achievementId: 'ach_all_forms',
     description: 'Historial contiene las 4 formas evolucionadas',
-    checkFn: (state) => {
-      const forms = new Set<string>();
-      state.history.forEach((event) => {
-        if (event.type === 'EVOLVED') {
-          const toForm = (event.data as any)?.to;
-          if (toForm) forms.add(toForm);
-        }
-      });
+    checkFn: (_state, stats) => {
       // Debe incluir POMPOMPURIN, MUFFIN, BAGEL, SCONE
-      return forms.has('POMPOMPURIN') && forms.has('MUFFIN') && forms.has('BAGEL') && forms.has('SCONE');
+      return stats.evolvedForms.has('POMPOMPURIN') &&
+             stats.evolvedForms.has('MUFFIN') &&
+             stats.evolvedForms.has('BAGEL') &&
+             stats.evolvedForms.has('SCONE');
     },
   },
 ];
 
 /**
- * Checks for new achievement unlocks without modifying state or cloning.
- * Returns an array of newly unlocked achievement IDs.
+ * Evalúa y desbloquea logros
  */
-export function checkAchievementUnlocks(state: PetState): string[] {
+export function evaluateAchievementUnlocks(state: PetState): PetState {
+  // Pre-calculate stats in a single pass from the input state
+  const stats: AchievementStats = {
+    actionCounts: {},
+    totalActions: 0,
+    evolvedForms: new Set<string>(),
+  };
+
+  for (const event of state.history) {
+    if (event.data && typeof (event.data as any).action === 'string') {
+      const action = (event.data as any).action;
+      stats.actionCounts[action] = (stats.actionCounts[action] || 0) + 1;
+      stats.totalActions++;
+    }
+
+    if (event.type === 'EVOLVED') {
+      const toForm = (event.data as any)?.to;
+      if (toForm) {
+        stats.evolvedForms.add(toForm);
+      }
+    }
+  }
+
   const newUnlocks: string[] = [];
 
   for (const condition of ACHIEVEMENT_CONDITIONS) {
+    // Si ya está desbloqueado, saltar
     if (state.unlockedAchievements.includes(condition.achievementId)) {
       continue;
     }
 
-    if (condition.checkFn(state)) {
+    // Evaluar condición using stats
+    if (condition.checkFn(state, stats)) {
       newUnlocks.push(condition.achievementId);
     }
   }
 
-  return newUnlocks;
-}
-
-/**
- * Evalúa y desbloquea logros
- * @deprecated Use checkAchievementUnlocks and apply changes manually
- */
-export function evaluateAchievementUnlocks(state: PetState): PetState {
-  const newUnlocks = checkAchievementUnlocks(state);
-
+  // Si no hay nuevos logros, devolver el estado original
   if (newUnlocks.length === 0) {
-    return structuredClone(state);
+    return state;
   }
 
+  // Si hay nuevos logros, clonar y actualizar
   const newState = structuredClone(state);
   newState.unlockedAchievements.push(...newUnlocks);
   return newState;
@@ -173,16 +193,4 @@ export function getUnlockedAchievements(state: PetState): Achievement[] {
   return state.unlockedAchievements
     .map((id) => getAchievementById(id))
     .filter((ach): ach is Achievement => ach !== undefined);
-}
-
-// ============ Helpers privados ============
-
-function countActionType(state: PetState, actionType: string): number {
-  return state.history.filter((event) => {
-    return event.data && (event.data as Record<string, unknown>).action === actionType;
-  }).length;
-}
-
-function getTotalActions(state: PetState): number {
-  return state.history.filter((event) => event.data && (event.data as Record<string, unknown>).action).length;
 }
