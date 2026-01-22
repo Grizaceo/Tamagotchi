@@ -1,7 +1,7 @@
 /**
  * Eventos que ocurren durante el juego
  */
-export type EventType = 'STAT_CHANGED' | 'DIED' | 'EVOLVED' | 'GIFT_UNLOCKED' | 'MINIGAME_WIN' | 'MINIGAME_PERFECT';
+export type EventType = 'STAT_CHANGED' | 'DIED' | 'EVOLVED' | 'GIFT_UNLOCKED' | 'MINIGAME_WIN' | 'MINIGAME_PERFECT' | 'MINIGAME_LOSS';
 
 export interface GameEvent {
   type: EventType;
