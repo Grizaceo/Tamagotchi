@@ -129,10 +129,16 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     if (!petState.settings.paused) {
       const speedFactor = petState.settings.speed === '2x' ? 2 : 1;
       accumulator += delta * speedFactor;
+
+      let ticksToProcess = 0;
       while (accumulator >= TICK_MS) {
-        petState = tick(petState, 1);
-        petState = postProcessState(petState);
+        ticksToProcess++;
         accumulator -= TICK_MS;
+      }
+
+      if (ticksToProcess > 0) {
+        petState = tick(petState, ticksToProcess);
+        petState = postProcessState(petState);
         pendingSave = true;
       }
     } else {
