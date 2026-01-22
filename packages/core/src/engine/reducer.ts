@@ -156,10 +156,13 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
     newState.stats.happiness = clampStat(newState.stats.happiness + 25);
     newState.stats.affection = clampStat(newState.stats.affection + 10);
     newState.history.push(createEvent('MINIGAME_PERFECT', action.timestamp, { gameId, score }));
-  } else {
+  } else if (result === 'win') {
     newState.stats.happiness = clampStat(newState.stats.happiness + 15);
     newState.stats.affection = clampStat(newState.stats.affection + 5);
     newState.history.push(createEvent('MINIGAME_WIN', action.timestamp, { gameId, score }));
+  } else {
+    // Loss - no rewards
+    newState.history.push(createEvent('MINIGAME_LOSS', action.timestamp, { gameId, score }));
   }
 
   // Registrar último juego - typeguard

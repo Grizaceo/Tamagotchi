@@ -57,10 +57,8 @@ describe('Minigames Integration', () => {
 
       const nextState = reduce(state, action);
 
-      // Loss: current implementation treats any result as 'win'
-      // This is the actual behavior we're testing
-      // TODO: Consider if we want to differentiate loss behavior
-      expect(nextState.stats.happiness).toBeGreaterThan(initialHappiness);
+      // Loss: should not gain happiness rewards (may even decrease due to tick)
+      expect(nextState.stats.happiness).toBeLessThanOrEqual(initialHappiness);
       expect(nextState.minigames.lastPlayed['pudding']).toBeDefined();
     });
   });
@@ -93,8 +91,8 @@ describe('Minigames Integration', () => {
 
       const nextState = reduce(state, action);
 
-      // Currently, loss is treated same as win - still gets reward
-      // totalTicks is incremented by tick() in reduce before action
+      // Loss should record play but not grant happiness
+      expect(nextState.stats.happiness).toBeLessThanOrEqual(state.stats.happiness);
       expect(nextState.minigames.lastPlayed['memory']).toBeDefined();
     });
   });
