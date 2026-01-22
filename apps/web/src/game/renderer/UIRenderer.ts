@@ -1,5 +1,5 @@
 import { AssetManager } from './SpriteRenderer';
-import { PetState } from '@pompom/core';
+import type { PetState } from '@pompom/core';
 
 export class UIRenderer {
     private assetManager: AssetManager;
@@ -40,7 +40,7 @@ export class UIRenderer {
         ctx.textAlign = 'right';
         // Clock placeholder
         const time = Math.floor(state.totalTicks / 60); // minutes
-        ctx.fillText(\`\${time}m\`, 310, 15);
+        ctx.fillText(`${time}m`, 310, 15);
 
     // Status icons (simple text fallback for now if sick/hungry)
     ctx.textAlign = 'left';
@@ -60,7 +60,7 @@ export class UIRenderer {
     const startX = (320 - (this.ICONS.length * (displaySize + padding))) / 2;
     const y = 240 - 30; // Bottom 30px
 
-    this.ICONS.forEach((icon, index) => {
+    this.ICONS.forEach((_, index) => {
         const x = startX + index * (displaySize + padding);
         
         // Highlight if selected
