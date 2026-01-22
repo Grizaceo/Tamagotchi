@@ -72,3 +72,21 @@ export function getMenuIndex(scene: SceneId): number {
   const idx = BOTTOM_MENU.findIndex((item) => item.id === scene);
   return idx === -1 ? 0 : idx;
 }
+
+export function getIconIndexForScene(sceneId: SceneId): number {
+  switch (sceneId) {
+    case 'Home':
+      return 5; // stats
+    case 'CareMenu':
+      return 0; // food
+    case 'Gifts':
+      return 7; // gift
+    case 'Album':
+      return 8; // album
+    case 'Minigames':
+      return 2; // play
+    case 'Settings':
+    default:
+      return -1; // No icon
+  }
+}

@@ -1,0 +1,12 @@
+
+> pompom-tama@ dev /app
+> pnpm -C apps/web dev
+
+
+> web@0.0.0 dev /app/apps/web
+> vite
+
+sh: 1: vite: not found
+ ELIFECYCLE  Command failed.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?
+ ELIFECYCLE  Command failed with exit code 1.
