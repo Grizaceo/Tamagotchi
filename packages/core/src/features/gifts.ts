@@ -139,24 +139,43 @@ export const GIFT_UNLOCK_CONDITIONS: GiftUnlockCondition[] = [
 ];
 
 /**
- * Desbloquea regalos si se cumplen condiciones
- * Retorna estado actualizado con regalos desbloqueados
+ * Checks for new gift unlocks without modifying state or cloning.
+ * Returns an array of newly unlocked gift IDs.
  */
-export function evaluateGiftUnlocks(state: PetState): PetState {
-  const newState = structuredClone(state);
+export function checkGiftUnlocks(state: PetState): string[] {
+  const newUnlocks: string[] = [];
 
   for (const condition of GIFT_UNLOCK_CONDITIONS) {
-    // Si ya está desbloqueado, saltar
-    if (newState.unlockedGifts.includes(condition.giftId)) {
+    if (state.unlockedGifts.includes(condition.giftId)) {
       continue;
     }
 
-    // Evaluar condición
-    if (condition.checkFn(newState)) {
-      newState.unlockedGifts.push(condition.giftId);
+    if (condition.checkFn(state)) {
+      newUnlocks.push(condition.giftId);
     }
   }
 
+  return newUnlocks;
+}
+
+/**
+ * Desbloquea regalos si se cumplen condiciones
+ * Retorna estado actualizado con regalos desbloqueados
+ * @deprecated Use checkGiftUnlocks and apply changes manually to avoid extra cloning
+ */
+export function evaluateGiftUnlocks(state: PetState): PetState {
+  const newUnlocks = checkGiftUnlocks(state);
+
+  if (newUnlocks.length === 0) {
+    // Return a clone to maintain original behavior of always returning a new reference
+    // OR change behavior to return original if no change (optimization)
+    // Given the previous code ALWAYS cloned, we should probably stick to that or verify if callers expect it.
+    // Ideally we return 'state' if no change, but let's be safe and clone for this legacy function.
+    return structuredClone(state);
+  }
+
+  const newState = structuredClone(state);
+  newState.unlockedGifts.push(...newUnlocks);
   return newState;
 }
 

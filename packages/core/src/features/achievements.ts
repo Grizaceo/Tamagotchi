@@ -124,23 +124,38 @@ export const ACHIEVEMENT_CONDITIONS: AchievementCondition[] = [
 ];
 
 /**
- * Evalúa y desbloquea logros
+ * Checks for new achievement unlocks without modifying state or cloning.
+ * Returns an array of newly unlocked achievement IDs.
  */
-export function evaluateAchievementUnlocks(state: PetState): PetState {
-  const newState = structuredClone(state);
+export function checkAchievementUnlocks(state: PetState): string[] {
+  const newUnlocks: string[] = [];
 
   for (const condition of ACHIEVEMENT_CONDITIONS) {
-    // Si ya está desbloqueado, saltar
-    if (newState.unlockedAchievements.includes(condition.achievementId)) {
+    if (state.unlockedAchievements.includes(condition.achievementId)) {
       continue;
     }
 
-    // Evaluar condición
-    if (condition.checkFn(newState)) {
-      newState.unlockedAchievements.push(condition.achievementId);
+    if (condition.checkFn(state)) {
+      newUnlocks.push(condition.achievementId);
     }
   }
 
+  return newUnlocks;
+}
+
+/**
+ * Evalúa y desbloquea logros
+ * @deprecated Use checkAchievementUnlocks and apply changes manually
+ */
+export function evaluateAchievementUnlocks(state: PetState): PetState {
+  const newUnlocks = checkAchievementUnlocks(state);
+
+  if (newUnlocks.length === 0) {
+    return structuredClone(state);
+  }
+
+  const newState = structuredClone(state);
+  newState.unlockedAchievements.push(...newUnlocks);
   return newState;
 }
 
