@@ -68,11 +68,19 @@ export const GIFT_CATALOG: Gift[] = [
 ];
 
 /**
+ * Contexto optimizado para evaluación de condiciones
+ */
+export interface GiftUnlockContext {
+  actionCounts: Map<string, number>;
+  evolvedTo: Set<string>;
+}
+
+/**
  * Interfaz para describir una condición de desbloqueo
  */
 export interface GiftUnlockCondition {
   giftId: string;
-  checkFn: (state: PetState) => boolean;
+  checkFn: (state: PetState, context: GiftUnlockContext) => boolean;
   description: string;
 }
 
@@ -83,39 +91,38 @@ export const GIFT_UNLOCK_CONDITIONS: GiftUnlockCondition[] = [
   {
     giftId: 'gift_first_meal',
     description: 'Alimenta al pet al menos una vez',
-    checkFn: (state) => countAction(state, 'FEED') >= 1,
+    checkFn: (state, context) => (context.actionCounts.get('FEED') || 0) >= 1,
   },
 
   {
     giftId: 'gift_playtime_joy',
     description: 'Juega con el pet al menos 3 veces',
-    checkFn: (state) => countAction(state, 'PLAY') >= 3,
+    checkFn: (state, context) => (context.actionCounts.get('PLAY') || 0) >= 3,
   },
 
   {
     giftId: 'gift_dreams',
     description: 'Deja dormir al pet al menos 5 veces',
-    checkFn: (state) => countAction(state, 'REST') >= 5,
+    checkFn: (state, context) => (context.actionCounts.get('REST') || 0) >= 5,
   },
 
   {
     giftId: 'gift_health_potion',
     description: 'Cura al pet al menos 2 veces',
-    checkFn: (state) => countAction(state, 'MEDICATE') >= 2,
+    checkFn: (state, context) => (context.actionCounts.get('MEDICATE') || 0) >= 2,
   },
 
   {
     giftId: 'gift_affection',
     description: 'Acaricia al pet al menos 10 veces',
-    checkFn: (state) => countAction(state, 'PET') >= 10,
+    checkFn: (state, context) => (context.actionCounts.get('PET') || 0) >= 10,
   },
 
   {
     giftId: 'gift_perfect_care',
     description: 'Alcanza evolución POMPOMPURIN (cuidados perfectos)',
-    checkFn: (state) =>
-      state.species === 'POMPOMPURIN' ||
-      state.history.some((e) => e.type === 'EVOLVED' && (e.data as any)?.to === 'POMPOMPURIN'),
+    checkFn: (state, context) =>
+      state.species === 'POMPOMPURIN' || context.evolvedTo.has('POMPOMPURIN'),
   },
 
   {
@@ -145,6 +152,25 @@ export const GIFT_UNLOCK_CONDITIONS: GiftUnlockCondition[] = [
 export function evaluateGiftUnlocks(state: PetState): PetState {
   const newState = structuredClone(state);
 
+  // Optimización: Pre-calcular contadores escaneando el historial una sola vez
+  const context: GiftUnlockContext = {
+    actionCounts: new Map(),
+    evolvedTo: new Set()
+  };
+
+  for (const event of newState.history) {
+    // Contar acciones
+    if (event.data && typeof (event.data as any).action === 'string') {
+      const action = (event.data as any).action as string;
+      context.actionCounts.set(action, (context.actionCounts.get(action) || 0) + 1);
+    }
+
+    // Rastrear evoluciones
+    if (event.type === 'EVOLVED' && event.data && (event.data as any).to) {
+      context.evolvedTo.add((event.data as any).to as string);
+    }
+  }
+
   for (const condition of GIFT_UNLOCK_CONDITIONS) {
     // Si ya está desbloqueado, saltar
     if (newState.unlockedGifts.includes(condition.giftId)) {
@@ -152,7 +178,7 @@ export function evaluateGiftUnlocks(state: PetState): PetState {
     }
 
     // Evaluar condición
-    if (condition.checkFn(newState)) {
+    if (condition.checkFn(newState, context)) {
       newState.unlockedGifts.push(condition.giftId);
     }
   }
@@ -177,12 +203,6 @@ export function getUnlockedGifts(state: PetState): Gift[] {
 }
 
 // ============ Helpers privados ============
-
-function countAction(state: PetState, actionType: string): number {
-  return state.history.filter((event) => {
-    return event.data && (event.data as Record<string, unknown>).action === actionType;
-  }).length;
-}
 
 function isEvolved(state: PetState): boolean {
   return ['POMPOMPURIN', 'MUFFIN', 'BAGEL', 'SCONE'].includes(state.species);
