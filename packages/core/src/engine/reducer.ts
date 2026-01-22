@@ -16,7 +16,8 @@ export function reduce(state: PetState, action: Action): PetState {
   let newState = structuredClone(state);
 
   // Primero aplica un tick (el tiempo siempre avanza)
-  newState = tick(newState, 1);
+  // Usamos mutate=true porque ya clonamos el estado arriba
+  newState = tick(newState, 1, true);
 
   if (!newState.alive) {
     return newState;
