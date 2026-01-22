@@ -60,7 +60,7 @@ export class UIRenderer {
     const startX = (320 - (this.ICONS.length * (displaySize + padding))) / 2;
     const y = 240 - 30; // Bottom 30px
 
-    this.ICONS.forEach((_, index) => {
+    this.ICONS.forEach((_icon, index) => {
         const x = startX + index * (displaySize + padding);
         
         // Highlight if selected

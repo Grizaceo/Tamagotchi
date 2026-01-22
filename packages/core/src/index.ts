@@ -1,7 +1,7 @@
 import type { PetState } from './model/PetState';
 import { applyEvolutionIfNeeded } from './evolution/evaluateEvolution';
-import { checkGiftUnlocks } from './features/gifts';
-import { checkAchievementUnlocks } from './features/achievements';
+import { evaluateGiftUnlocks } from './features/gifts';
+import { evaluateAchievementUnlocks } from './features/achievements';
 
 // Model exports
 export * from './model/PetState';
@@ -33,38 +33,16 @@ export * from './persistence/serialize';
  * Garantiza determinismo: mismo input siempre produce mismo output
  */
 export function postProcessState(state: PetState): PetState {
-  let current = state;
-  let isMutable = false;
+  let processed = state;
 
-  // 1. Evolution
-  // applyEvolutionIfNeeded returns a new object (clone) if evolution occurs, or the same object if not.
-  const evolvedState = applyEvolutionIfNeeded(current);
-  if (evolvedState !== current) {
-    current = evolvedState;
-    isMutable = true;
-  }
+  // 1. Aplicar evolución si se cumplen condiciones
+  processed = applyEvolutionIfNeeded(processed);
 
-  // 2. Gifts
-  // Check against 'current' so we see any changes from evolution
-  const newGifts = checkGiftUnlocks(current);
-  if (newGifts.length > 0) {
-    if (!isMutable) {
-      current = structuredClone(current);
-      isMutable = true;
-    }
-    current.unlockedGifts.push(...newGifts);
-  }
+  // 2. Evaluar y desbloquear regalos basado en estado actual
+  processed = evaluateGiftUnlocks(processed);
 
-  // 3. Achievements
-  // Check against 'current' so we see any changes from evolution OR gifts
-  const newAchievements = checkAchievementUnlocks(current);
-  if (newAchievements.length > 0) {
-    if (!isMutable) {
-      current = structuredClone(current);
-      isMutable = true;
-    }
-    current.unlockedAchievements.push(...newAchievements);
-  }
+  // 3. Evaluar y desbloquear logros basado en estado final
+  processed = evaluateAchievementUnlocks(processed);
 
-  return current;
+  return processed;
 }
