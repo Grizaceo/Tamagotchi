@@ -60,27 +60,35 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
   let rafId = 0;
 
   // --- Visual System Initialization ---
-  const { AssetManager, SpriteRenderer } = await import('./renderer/SpriteRenderer');
-  const { UIRenderer } = await import('./renderer/UIRenderer');
-  const { SPRITE_CONFIGS } = await import('./renderer/SpriteConfigs'); // Dynamic import to avoid circular dep issues if any, or just cleaner
-
-  const assetManager = new AssetManager();
-  const uiRenderer = new UIRenderer(assetManager);
-
-  // Pre-load assets
-  try {
-    await uiRenderer.load();
-    for (const key in SPRITE_CONFIGS) {
-      await assetManager.load(key, SPRITE_CONFIGS[key].src);
-    }
-  } catch (e) {
-    console.error('Failed to load assets', e);
-  }
-
-  // SpriteRenderer instance (re-created when species changes or specific one reused)
-  // We'll keep one and update config, or create a map. 
-  // Simpler: Just create one based on current state and update it.
   let spriteRenderer: any = null; // typed as SpriteRenderer
+  let assetManager: any;
+  let SPRITE_CONFIGS: any;
+  let uiRenderer: any = null;
+  let SpriteRenderer: any;
+
+  Promise.all([
+    import('./renderer/SpriteRenderer'),
+    import('./renderer/UIRenderer'),
+    import('./renderer/SpriteConfigs'),
+  ]).then(([modSprite, modUI, modConfig]) => {
+    const { AssetManager, SpriteRenderer: SR } = modSprite;
+    const { UIRenderer } = modUI;
+    SPRITE_CONFIGS = modConfig.SPRITE_CONFIGS;
+    SpriteRenderer = SR;
+
+    assetManager = new AssetManager();
+    uiRenderer = new UIRenderer(assetManager);
+
+    return uiRenderer.load().then(() => {
+      const promises = [];
+      for (const key in SPRITE_CONFIGS) {
+        promises.push(assetManager.load(key, SPRITE_CONFIGS[key].src));
+      }
+      return Promise.all(promises);
+    });
+  }).catch((e) => {
+    console.error('Failed to load assets', e);
+  });
 
   function updateSpriteRenderer(state: PetState) {
     const species = state.species;
@@ -109,6 +117,7 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     spriteRenderer.setAnimation(anim);
   }
 
+  // @ts-ignore
   let petSprite: HTMLImageElement | null = null; // Deprecated but kept for compatibility with old renderFrame signature if needed temporarily
 
   minigameManager.setOnGameComplete((result) => {
@@ -155,7 +164,7 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
       minigameFrame: uiState.scene === 'Minigames' && uiState.minigameMode === 'playing' ? minigameCanvas : null,
       petSprite: null, // Legacy
       spriteRenderer, // Pass new renderer
-      uiRenderer,     // Pass new renderer
+      uiRenderer: uiRenderer || undefined,     // Pass new renderer
     });
 
     if (pendingSave && now - lastSaveAt > SAVE_INTERVAL_MS) {

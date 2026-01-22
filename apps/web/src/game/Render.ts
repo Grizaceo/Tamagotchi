@@ -1,6 +1,6 @@
 import type { PetState } from '@pompom/core';
 import { getGiftById } from '@pompom/core';
-import { ALBUM_PAGE_SIZE, BOTTOM_MENU, CARE_ACTIONS, getMenuIndex, MINIGAMES, SETTINGS_ITEMS } from './Scenes';
+import { ALBUM_PAGE_SIZE, CARE_ACTIONS, MINIGAMES, SETTINGS_ITEMS } from './Scenes';
 import type { UiState } from './Scenes';
 
 const PALETTE = {
@@ -52,6 +52,7 @@ export function renderFrame(
   }
 }
 
+// @ts-ignore
 function drawFrame(ctx: CanvasRenderingContext2D, width: number, height: number): void {
   ctx.fillStyle = PALETTE.frameShadow;
   ctx.fillRect(0, 0, width, height);
@@ -62,6 +63,7 @@ function drawFrame(ctx: CanvasRenderingContext2D, width: number, height: number)
   ctx.strokeRect(4, 4, width - 8, height - 8);
 }
 
+// @ts-ignore
 function drawScreen(ctx: CanvasRenderingContext2D, screen: Rect): void {
   ctx.fillStyle = PALETTE.bezel;
   ctx.fillRect(screen.x, screen.y, screen.w, screen.h);
@@ -156,21 +158,29 @@ function drawHome(
   ctx.fillText(infoLine, area.x + 4, area.y + area.h - 4);
 }
 
+// Reuse objects to avoid allocation in render loop
+const STATS_POOL = [
+  { label: 'H', value: 0 },
+  { label: 'P', value: 0 },
+  { label: 'E', value: 0 },
+  { label: 'S', value: 0 },
+];
+
 function drawStats(ctx: CanvasRenderingContext2D, state: PetState, area: Rect): void {
-  const stats = [
-    { label: 'H', value: state.stats.hunger },
-    { label: 'P', value: state.stats.happiness },
-    { label: 'E', value: state.stats.energy },
-    { label: 'S', value: state.stats.health },
-  ];
-  const barWidth = Math.floor(area.w / stats.length) - 4;
+  STATS_POOL[0].value = state.stats.hunger;
+  STATS_POOL[1].value = state.stats.happiness;
+  STATS_POOL[2].value = state.stats.energy;
+  STATS_POOL[3].value = state.stats.health;
+
+  const barWidth = Math.floor(area.w / STATS_POOL.length) - 4;
   const barHeight = 10;
 
-  stats.forEach((stat, index) => {
-    const x = area.x + index * (barWidth + 4);
+  for (let i = 0; i < STATS_POOL.length; i++) {
+    const stat = STATS_POOL[i];
+    const x = area.x + i * (barWidth + 4);
     const y = area.y + 8;
     drawStatBar(ctx, x, y, barWidth, barHeight, stat.value, stat.label);
-  });
+  }
 }
 
 function drawStatBar(
@@ -396,7 +406,8 @@ function drawMinigames(
   ctx.fillText('ENTER to play - BACK to exit', area.x + 6, area.y + area.h - 14);
 }
 
-function drawBottomBar(ctx: CanvasRenderingContext2D, ui: UiState, bar: Rect): void {
+// function drawBottomBar(ctx: CanvasRenderingContext2D, ui: UiState, bar: Rect): void {
+/* function drawBottomBar(ctx: CanvasRenderingContext2D, ui: UiState, bar: Rect): void {
   ctx.fillStyle = PALETTE.screenShade;
   ctx.fillRect(bar.x, bar.y, bar.w, bar.h);
 
@@ -427,7 +438,7 @@ function drawBottomBar(ctx: CanvasRenderingContext2D, ui: UiState, bar: Rect): v
   ctx.fill();
 
   ctx.textAlign = 'start';
-}
+} */
 
 function wrapText(
   ctx: CanvasRenderingContext2D,

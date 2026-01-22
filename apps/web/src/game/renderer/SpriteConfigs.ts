@@ -1,4 +1,4 @@
-import { SpriteConfig } from './SpriteRenderer';
+import type { SpriteConfig } from './SpriteRenderer';
 
 const COMMON_ANIMATIONS = {
     idle: { row: 0, frames: 2, loop: true, speed: 2 },
