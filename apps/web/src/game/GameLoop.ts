@@ -85,6 +85,9 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
         promises.push(assetManager.load(key, SPRITE_CONFIGS[key].src));
       }
       return Promise.all(promises);
+    }).then(() => {
+      // Create the initial sprite renderer now that assets are loaded
+      updateSpriteRenderer(petState);
     });
   }).catch((e) => {
     console.error('Failed to load assets', e);
@@ -96,9 +99,9 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
 
     if (!spriteRenderer || spriteRenderer.assetKey !== species) {
       spriteRenderer = new SpriteRenderer(assetManager, species, config);
-      // Center sprite roughly
-      spriteRenderer.x = (320 - 48) / 2;
-      spriteRenderer.y = (240 - 48) / 2 + 20; // A bit lower than center
+      spriteRenderer.displaySize = 96; // Render at 96px on 320×240 canvas
+      spriteRenderer.x = (320 - 96) / 2;
+      spriteRenderer.y = (240 - 96) / 2 + 10; // A bit lower than center
     }
 
     // Update Animation State based on PetState
@@ -117,8 +120,7 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     spriteRenderer.setAnimation(anim);
   }
 
-  // @ts-ignore
-  let petSprite: HTMLImageElement | null = null; // Deprecated but kept for compatibility with old renderFrame signature if needed temporarily
+
 
   minigameManager.setOnGameComplete((result) => {
     const action = createAction('PLAY_MINIGAME', petState.totalTicks, {
@@ -159,16 +161,17 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
       minigameManager.draw();
     }
 
-    // Update Sprite System
-    if (spriteRenderer) {
+    // Update Sprite System — create or update sprite renderer once assets are loaded
+    if (SPRITE_CONFIGS && SpriteRenderer) {
       updateSpriteRenderer(petState);
-      spriteRenderer.update(delta);
+      if (spriteRenderer) {
+        spriteRenderer.update(delta);
+      }
     }
 
     // Render Frame
     renderFrame(ctx, petState, uiState, now, {
       minigameFrame: uiState.scene === 'Minigames' && uiState.minigameMode === 'playing' ? minigameCanvas : null,
-      petSprite: null, // Legacy
       spriteRenderer, // Pass new renderer
       uiRenderer: uiRenderer || undefined,     // Pass new renderer
     });
@@ -321,11 +324,89 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
 }
 
 function loadState(): PetState {
+  // Support ?reset in URL to force-clear saved data
+  if (window.location.search.includes('reset')) {
+    console.log('[PomPom] Force reset via ?reset param — clearing save data');
+    localStorage.removeItem(STORAGE_KEY);
+    // Clean up the URL to prevent re-triggering on refresh
+    window.history.replaceState({}, '', window.location.pathname);
+    const fresh = createInitialPetState();
+    console.log('[PomPom] Fresh state:', fresh.species, 'health:', fresh.stats.health, 'alive:', fresh.alive);
+    return fresh;
+  }
+
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
-    return createInitialPetState();
+    const fresh = createInitialPetState();
+    console.log('[PomPom] No save found, starting fresh:', fresh.species, 'health:', fresh.stats.health);
+    return fresh;
   }
-  return deserializeFromJSON(raw);
+  let loaded = deserializeFromJSON(raw);
+  console.log('[PomPom] Loaded save:', loaded.species, 'health:', loaded.stats.health, 'alive:', loaded.alive, 'ticks:', loaded.totalTicks);
+
+  // ── Welcome-back recovery ──
+  // When the player returns after being offline, apply a gentle recovery
+  // so the pet isn't permanently stuck in a sick/dying state.
+  loaded = applyWelcomeBackRecovery(loaded);
+
+  return loaded;
+}
+
+/**
+ * Aplica recuperación de "bienvenida" al cargar el estado guardado.
+ * Si la mascota estaba descuidada (hambre alta, salud baja), se recupera
+ * parcialmente para que el jugador no la encuentre siempre enferma.
+ * Simula que la mascota "descansó" mientras el jugador no estaba.
+ */
+function applyWelcomeBackRecovery(state: PetState): PetState {
+  // Si la mascota murió por descuido, revivirla con stats bajos pero viables
+  if (!state.alive) {
+    console.log('[PomPom] Pet was dead — reviving with low but viable stats');
+    state = structuredClone(state);
+    state.alive = true;
+    state.stats.health = 30;
+    state.stats.hunger = 40;   // somewhat hungry but not critical
+    state.stats.happiness = 30;
+    state.stats.energy = 50;
+    return state;
+  }
+
+  const needsRecovery =
+    state.stats.health < 40 ||
+    state.stats.hunger > 70 ||
+    state.stats.happiness < 20;
+
+  if (!needsRecovery) {
+    return state;
+  }
+
+  console.log('[PomPom] Applying welcome-back recovery — pet was in bad shape');
+  state = structuredClone(state);
+
+  // Reduce hunger (the pet "rested" and digested while offline)
+  if (state.stats.hunger > 40) {
+    state.stats.hunger = Math.max(40, state.stats.hunger - 30);
+  }
+
+  // Recover health partially
+  if (state.stats.health < 40) {
+    state.stats.health = Math.min(100, state.stats.health + 30);
+  }
+
+  // Bump happiness a bit
+  if (state.stats.happiness < 30) {
+    state.stats.happiness = Math.min(100, state.stats.happiness + 20);
+  }
+
+  // Recover energy
+  if (state.stats.energy < 30) {
+    state.stats.energy = Math.min(100, state.stats.energy + 30);
+  }
+
+  console.log('[PomPom] After recovery — health:', state.stats.health,
+    'hunger:', state.stats.hunger, 'happiness:', state.stats.happiness);
+
+  return state;
 }
 
 function saveState(state: PetState): void {

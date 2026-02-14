@@ -1,45 +1,236 @@
+/* ── Pompom Tama — Retro Virtual Pet ── */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 :root {
-  font-family: "Cascadia Mono", "Courier New", monospace;
+  --bg-dark: #0f0d08;
+  --bg-warm: #342818;
+  --frame: #5a4026;
+  --frame-gold: #d7b87a;
+  --btn-bg: #2a1f14;
+  --btn-border: #7a5c38;
+  --btn-active: #c96b3b;
+  --btn-text: #d7b87a;
+  --text-muted: #8a7a64;
+
+  font-family: 'Press Start 2P', 'Cascadia Mono', 'Courier New', monospace;
   line-height: 1.4;
-  font-weight: 500;
   color: #f0e9d2;
-  background-color: #0f0d08;
+  background-color: var(--bg-dark);
   font-synthesis: none;
   text-rendering: geometricPrecision;
+  -webkit-tap-highlight-color: transparent;
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-image: radial-gradient(circle at top, #342818, #0f0d08 70%),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 8px, rgba(0, 0, 0, 0.04) 8px 16px);
+  background:
+    radial-gradient(circle at top, var(--bg-warm), var(--bg-dark) 70%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.04) 0 8px,
+      rgba(0, 0, 0, 0.04) 8px 16px
+    );
   background-attachment: fixed;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
+/* ── Shell (device frame) ── */
+
+#tama-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 20px 20px;
+  border-radius: 28px;
+  background: linear-gradient(145deg, #2a1f14 0%, #1a1209 100%);
+  border: 3px solid var(--frame);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(215, 184, 122, 0.15),
+    0 0 80px rgba(201, 107, 59, 0.08);
+}
+
+/* ── Screen (canvas) ── */
+
 #screen {
-  width: min(92vw, 720px);
+  width: min(88vw, 640px);
   height: auto;
   aspect-ratio: 4 / 3;
   border-radius: 12px;
-  border: 4px solid #5a4026;
+  border: 3px solid var(--frame);
   background: #241a10;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 2px #d7b87a;
+  box-shadow:
+    inset 0 0 0 2px var(--frame-gold),
+    inset 0 4px 12px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3);
   image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none;
 }
 
-@media (max-width: 640px) {
-  body {
-    padding: 12px;
+/* ── Controls ── */
+
+#controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.ctrl-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.08s ease;
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.ctrl-btn:active,
+.ctrl-btn.pressed {
+  background: var(--btn-active);
+  color: #fff;
+  border-color: #e08050;
+  transform: scale(0.93);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Center button (ENTER) slightly larger */
+.ctrl-btn[data-cmd="ENTER"] {
+  width: 60px;
+  height: 60px;
+  font-size: 18px;
+  background: linear-gradient(145deg, #3a2a1a, #2a1f14);
+  border-color: var(--frame-gold);
+}
+
+.ctrl-btn[data-cmd="ENTER"]:active,
+.ctrl-btn[data-cmd="ENTER"].pressed {
+  background: var(--btn-active);
+  border-color: #e08050;
+}
+
+/* BACK button (X) slightly muted */
+.ctrl-btn[data-cmd="BACK"] {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ctrl-btn[data-cmd="BACK"]:active,
+.ctrl-btn[data-cmd="BACK"].pressed {
+  color: #fff;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 480px) {
+  #tama-shell {
+    border-radius: 20px;
+    padding: 16px 12px 14px;
+    gap: 12px;
+    border-width: 2px;
   }
 
   #screen {
-    width: 100%;
+    width: 92vw;
+    border-radius: 8px;
+    border-width: 2px;
+  }
+
+  .ctrl-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 13px;
+  }
+
+  .ctrl-btn[data-cmd="ENTER"] {
+    width: 54px;
+    height: 54px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .ctrl-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .ctrl-btn[data-cmd="ENTER"] {
+    width: 48px;
+    height: 48px;
+    font-size: 14px;
+  }
+}
+
+/* ── Landscape mobile ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  #tama-shell {
+    flex-direction: row;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  #screen {
+    width: auto;
+    height: 80dvh;
+  }
+
+  #controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ctrl-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 12px;
+  }
+
+  .ctrl-btn[data-cmd="ENTER"] {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* ── Desktop: hide controls if keyboard available ── */
+@media (hover: hover) and (pointer: fine) {
+  #controls {
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+  }
+
+  #controls:hover {
+    opacity: 1;
   }
 }

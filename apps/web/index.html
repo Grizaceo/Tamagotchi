@@ -1,13 +1,35 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pompom Tama</title>
-  </head>
-  <body>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Pompom Tama</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f0d08" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pompom Tama" />
+  <link rel="apple-touch-icon" href="/vite.svg" />
+
+  <!-- SEO -->
+  <meta name="description" content="Pompom Tama — Tu mascota virtual retro. ¡Cuídala, aliméntala y juega con ella!" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+</head>
+
+<body>
+  <div id="tama-shell">
     <canvas id="screen" width="320" height="240"></canvas>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+    <div id="controls">
+      <button class="ctrl-btn" data-cmd="LEFT" aria-label="Izquierda">◀</button>
+      <button class="ctrl-btn" data-cmd="ENTER" aria-label="Confirmar">●</button>
+      <button class="ctrl-btn" data-cmd="BACK" aria-label="Volver">✕</button>
+      <button class="ctrl-btn" data-cmd="RIGHT" aria-label="Derecha">▶</button>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>

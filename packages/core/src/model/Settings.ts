@@ -10,13 +10,4 @@ export interface GameSettings {
   paused: boolean;
 }
 
-export function createDefaultSettings(): GameSettings {
-  return {
-    difficulty: 'normal',
-    soundEnabled: true,
-    animationsEnabled: true,
-    reducedMotion: false,
-    speed: '1x',
-    paused: false,
-  };
-}
+

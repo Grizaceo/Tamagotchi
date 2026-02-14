@@ -49,92 +49,93 @@ export function reduce(state: PetState, action: Action): PetState {
 }
 
 function applyFeed(state: PetState, action: Action): PetState {
-  const newState = structuredClone(state);
+  const hungerBefore = state.stats.hunger;
 
-  // Reduce hambre pero aumenta un poco la felicidad
-  newState.stats.hunger = clampStat(newState.stats.hunger - 20);
-  newState.stats.happiness = clampStat(newState.stats.happiness + 5);
+  // Reduce hambre significativamente y mejora felicidad
+  state.stats.hunger = clampStat(state.stats.hunger - 30);
+  state.stats.happiness = clampStat(state.stats.happiness + 10);
 
-  newState.history.push(
+  state.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'FEED',
-      hungerBefore: state.stats.hunger,
-      hungerAfter: newState.stats.hunger,
+      hungerBefore,
+      hungerAfter: state.stats.hunger,
     })
   );
 
-  return newState;
+  return state;
 }
 
 function applyPlay(state: PetState, action: Action): PetState {
-  const newState = structuredClone(state);
+  const happinessBefore = state.stats.happiness;
 
-  // Aumenta felicidad pero reduce energía y aumenta hambre
-  newState.stats.happiness = clampStat(newState.stats.happiness + 20);
-  newState.stats.energy = clampStat(newState.stats.energy - 15);
-  newState.stats.hunger = clampStat(newState.stats.hunger + 10);
+  // Aumenta felicidad, reduce energía algo y da un poco de hambre
+  state.stats.happiness = clampStat(state.stats.happiness + 25);
+  state.stats.energy = clampStat(state.stats.energy - 10);
+  state.stats.hunger = clampStat(state.stats.hunger + 5);
 
-  newState.history.push(
+  state.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'PLAY',
-      happinessBefore: state.stats.happiness,
-      happinessAfter: newState.stats.happiness,
+      happinessBefore,
+      happinessAfter: state.stats.happiness,
     })
   );
 
-  return newState;
+  return state;
 }
 
 function applyRest(state: PetState, action: Action): PetState {
-  const newState = structuredClone(state);
+  const energyBefore = state.stats.energy;
 
-  // Aumenta energía, reduce hambre un poco
-  newState.stats.energy = clampStat(newState.stats.energy + 30);
-  newState.stats.hunger = clampStat(newState.stats.hunger + 5);
+  // Aumenta energía bastante, leve hambre
+  state.stats.energy = clampStat(state.stats.energy + 40);
+  state.stats.hunger = clampStat(state.stats.hunger + 3);
 
-  newState.history.push(
+  state.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'REST',
-      energyBefore: state.stats.energy,
-      energyAfter: newState.stats.energy,
+      energyBefore,
+      energyAfter: state.stats.energy,
     })
   );
 
-  return newState;
+  return state;
 }
 
 function applyMedicate(state: PetState, action: Action): PetState {
-  const newState = structuredClone(state);
+  const healthBefore = state.stats.health;
 
-  // Aumenta salud
-  newState.stats.health = clampStat(newState.stats.health + 25);
+  // Aumenta salud significativamente
+  state.stats.health = clampStat(state.stats.health + 40);
 
-  newState.history.push(
+  state.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'MEDICATE',
-      healthBefore: state.stats.health,
-      healthAfter: newState.stats.health,
+      healthBefore,
+      healthAfter: state.stats.health,
     })
   );
 
-  return newState;
+  return state;
 }
 
 function applyPet(state: PetState, action: Action): PetState {
-  const newState = structuredClone(state);
+  const happinessBefore = state.stats.happiness;
 
-  // Aumenta felicidad levemente
-  newState.stats.happiness = clampStat(newState.stats.happiness + 5);
+  // Aumenta felicidad y afecto
+  state.stats.happiness = clampStat(state.stats.happiness + 10);
+  state.stats.affection = clampStat(state.stats.affection + 5);
 
-  newState.history.push(
+  state.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
       action: 'PET',
-      happinessBefore: state.stats.happiness,
-      happinessAfter: newState.stats.happiness,
+      happinessBefore,
+      happinessAfter: state.stats.happiness,
     })
   );
 
-  return newState;
+  return state;
 }
 
 function applyPlayMinigame(state: PetState, action: Action): PetState {
@@ -149,36 +150,34 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
     return state; // No recompensa si está en cooldown
   }
 
-  const newState = structuredClone(state);
-
   // Recompensas
   if (result === 'perfect') {
-    newState.stats.happiness = clampStat(newState.stats.happiness + 25);
-    newState.stats.affection = clampStat(newState.stats.affection + 10);
-    newState.history.push(createEvent('MINIGAME_PERFECT', action.timestamp, { gameId, score }));
+    state.stats.happiness = clampStat(state.stats.happiness + 25);
+    state.stats.affection = clampStat(state.stats.affection + 10);
+    state.history.push(createEvent('MINIGAME_PERFECT', action.timestamp, { gameId, score }));
   } else if (result === 'win') {
-    newState.stats.happiness = clampStat(newState.stats.happiness + 15);
-    newState.stats.affection = clampStat(newState.stats.affection + 5);
-    newState.history.push(createEvent('MINIGAME_WIN', action.timestamp, { gameId, score }));
+    state.stats.happiness = clampStat(state.stats.happiness + 15);
+    state.stats.affection = clampStat(state.stats.affection + 5);
+    state.history.push(createEvent('MINIGAME_WIN', action.timestamp, { gameId, score }));
   } else {
     // Loss - no rewards
-    newState.history.push(createEvent('MINIGAME_LOSS', action.timestamp, { gameId, score }));
+    state.history.push(createEvent('MINIGAME_LOSS', action.timestamp, { gameId, score }));
   }
 
-  // Registrar último juego - typeguard
-  newState.minigames.lastPlayed[gameId as keyof typeof newState.minigames.lastPlayed] = state.totalTicks;
+  // Registrar último juego
+  state.minigames.lastPlayed[gameId as keyof typeof state.minigames.lastPlayed] = state.totalTicks;
 
-  return newState;
-}
-
-/**
- * Aplica múltiples acciones en secuencia
- */
-export function reduceMany(state: PetState, actions: Action[]): PetState {
-  let result = state;
-  for (const action of actions) {
-    result = reduce(result, action);
-    if (!result.alive) break;
+  // Actualizar estadísticas por juego
+  const gameKey = gameId as keyof typeof state.minigames.games;
+  const gameStats = state.minigames.games[gameKey];
+  if (gameStats) {
+    gameStats.totalPlayed++;
+    gameStats.lastPlayed = state.totalTicks;
+    if (score > gameStats.bestScore) gameStats.bestScore = score;
+    if (result === 'win' || result === 'perfect') gameStats.totalWins++;
+    if (result === 'perfect') gameStats.totalPerfect++;
   }
-  return result;
+
+  return state;
 }
+

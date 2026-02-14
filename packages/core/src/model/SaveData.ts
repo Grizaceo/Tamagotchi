@@ -28,8 +28,9 @@ export interface SaveData {
     };
   };
   history: Array<{
+    type: string;
     tick: number;
-    statChanges?: Record<string, number>;
+    data?: Record<string, unknown>;
   }>;
   unlockedGifts: string[];
   unlockedAchievements: string[];
@@ -46,38 +47,4 @@ export interface SaveData {
 
 export const SAVE_DATA_VERSION = 1;
 
-export function createEmptySaveData(): SaveData {
-  const now = Date.now();
-  return {
-    version: SAVE_DATA_VERSION,
-    createdAt: now,
-    lastSaved: now,
-    totalTicks: 0,
-    state: {
-      species: 'FLAN_BEBE',
-      stats: {
-        hunger: 30,
-        happiness: 70,
-        energy: 60,
-        health: 90,
-        affection: 20,
-      },
-      alive: true,
-      minigames: {
-        lastPlayed: {},
-      },
-    },
-    history: [],
-    unlockedGifts: [],
-    unlockedAchievements: [],
-    album: {},
-    settings: {
-      difficulty: 'normal',
-      soundEnabled: true,
-      animationsEnabled: true,
-      reducedMotion: false,
-      speed: '1x',
-      paused: false,
-    },
-  };
-}
+

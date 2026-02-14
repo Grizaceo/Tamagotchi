@@ -16,6 +16,7 @@ export interface EvolutionRule {
     minHealth?: number;         // 0-100
     minEnergy?: number;         // 0-100
     maxFeeds?: number;          // Máximo número de alimentaciones para este camino
+    minFeeds?: number;          // Mínimo número de alimentaciones (para Snack Addict)
     minPlayCount?: number;      // Mínimo número de veces jugado
     maxSleepInterruptions?: number; // Para el camino BAGEL (sueño irregular)
     minCleanliness?: number;    // Para SCONE (limpieza alta - nota: basado en inversión de cuidados)
@@ -61,7 +62,7 @@ export const EVOLUTION_RULES: EvolutionRule[] = [
     description: 'Muchos refrigerios, poca actividad: pet perezoso',
     conditions: {
       minTicks: 2400,      // 40 minutos
-      maxFeeds: 200,       // Muchas alimentaciones (acumuladas en historia)
+      minFeeds: 200,       // Muchas alimentaciones (acumuladas en historia)
       minPlayCount: 5,     // Muy poco juego
       minHealth: 50,
     },
@@ -89,9 +90,4 @@ export function getSortedRules(): EvolutionRule[] {
   return [...EVOLUTION_RULES].sort((a, b) => a.priority - b.priority);
 }
 
-/**
- * Busca una regla específica por species
- */
-export function getRuleBySpecies(species: EvolutionSpecies): EvolutionRule | undefined {
-  return EVOLUTION_RULES.find((r) => r.targetSpecies === species);
-}
+

@@ -11,6 +11,7 @@ describe('Minigames Integration', () => {
   describe('PuddingGame flow', () => {
     it('should reward happiness on perfect result', () => {
       const state = createInitialPetState();
+      state.stats.happiness = 50; // Start lower so reward is visible without capping
       const initialHappiness = state.stats.happiness;
 
       const action = createAction('PLAY_MINIGAME', state.totalTicks, {
@@ -128,6 +129,7 @@ describe('Minigames Integration', () => {
   describe('Minigame cooldown', () => {
     it('should enforce cooldown (100 ticks) between games', () => {
       let state = createInitialPetState();
+      state.stats.happiness = 50; // Start lower to avoid capping
 
       // First play
       state = reduce(state, createAction('PLAY_MINIGAME', state.totalTicks, { gameId: 'pudding', result: 'perfect' }));

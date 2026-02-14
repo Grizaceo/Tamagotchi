@@ -68,7 +68,4 @@ export function wrapIndex(next: number, size: number): number {
   return next;
 }
 
-export function getMenuIndex(scene: SceneId): number {
-  const idx = BOTTOM_MENU.findIndex((item) => item.id === scene);
-  return idx === -1 ? 0 : idx;
-}
+

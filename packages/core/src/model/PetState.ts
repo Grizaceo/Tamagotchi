@@ -34,11 +34,11 @@ export function createInitialPetState(): PetState {
   return {
     species: 'FLAN_BEBE',
     stats: {
-      hunger: 30,
-      happiness: 70,
-      energy: 60,
-      health: 90,
-      affection: 20,
+      hunger: 5,
+      happiness: 80,
+      energy: 80,
+      health: 100,
+      affection: 30,
     },
     alive: true,
     totalTicks: 0,

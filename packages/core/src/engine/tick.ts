@@ -18,11 +18,9 @@ export function tick(state: PetState, tickCount: number = 1, mutate: boolean = f
   const newState = mutate ? state : structuredClone(state);
   newState.totalTicks += tickCount;
 
-  // Degradación de stats por tick (por segundo aproximadamente)
-  // Hunger: aumenta (empeora) ~0.5 por segundo en dificultad normal
-  // Happiness: disminuye ~0.3 por segundo si no se interactúa
-  // Energy: disminuye ~0.1 por segundo de forma natural
-  // Health: disminuye ~0.1 por segundo si el hambre es muy alta
+  // Degradación de stats por tick (1 tick ≈ 1 segundo)
+  // Rates are per-second, scaled by difficulty.
+  // At normal speed the pet needs attention every ~15-20 minutes.
 
   const hungerDegradation = getDegradationRate(state.settings.difficulty, 'hunger');
   const happinessDegradation = getDegradationRate(state.settings.difficulty, 'happiness');
@@ -34,8 +32,13 @@ export function tick(state: PetState, tickCount: number = 1, mutate: boolean = f
 
   // Si el hambre es muy alto, la salud sufre
   if (newState.stats.hunger > 80) {
-    const healthDamage = (newState.stats.hunger - 80) * 0.01 * tickCount;
+    const healthDamage = (newState.stats.hunger - 80) * 0.005 * tickCount;
     newState.stats.health = clampStat(newState.stats.health - healthDamage);
+  }
+
+  // Recuperación natural de salud si está bien alimentado
+  if (newState.stats.hunger < 50 && newState.stats.health < 100) {
+    newState.stats.health = clampStat(newState.stats.health + 0.02 * tickCount);
   }
 
   // El Tamagotchi muere si la salud llega a 0
@@ -52,9 +55,9 @@ export function tick(state: PetState, tickCount: number = 1, mutate: boolean = f
  */
 function getDegradationRate(difficulty: string, stat: 'hunger' | 'happiness' | 'energy'): number {
   const baseRates = {
-    hunger: 0.5,
-    happiness: 0.3,
-    energy: 0.1,
+    hunger: 0.05,     // ~23 min to reach "Hungry" from 0
+    happiness: 0.03,  // ~27 min to reach "Sad" from 80
+    energy: 0.01,     // Very slow drain
   };
 
   const multipliers = {

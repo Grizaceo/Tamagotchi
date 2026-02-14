@@ -69,15 +69,15 @@ describe('evolution', () => {
     let state = createInitialPetState();
     state.species = 'FLAN_ADULT';
 
-    // Condiciones: minTicks 2400, maxFeeds 200, minPlayCount 5, health 50+
+    // Condiciones: minTicks 2400, minFeeds 200, minPlayCount 5, health 50+
     state.totalTicks = 2400;
     state.stats.health = 60;
     state.stats.hunger = 50;
     state.stats.happiness = 50;
     state.stats.energy = 70;
 
-    // Agregar muchos FEED y MÍNIMO de PLAY (5)
-    for (let i = 0; i < 150; i++) {
+    // Agregar muchos FEED (200+) y MÍNIMO de PLAY (5)
+    for (let i = 0; i < 200; i++) {
       state.history.push({
         type: 'STAT_CHANGED',
         timestamp: i,

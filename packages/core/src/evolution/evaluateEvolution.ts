@@ -104,6 +104,14 @@ function checkConditions(
     }
   }
 
+  // minFeeds: mínimo de acciones FEED en historia (para Snack Addict / MUFFIN)
+  if (conditions.minFeeds !== undefined) {
+    const feedCount = historyStats.actionCounts['FEED'] || 0;
+    if (feedCount < conditions.minFeeds) {
+      return false;
+    }
+  }
+
   // minPlayCount: contar acciones PLAY en historia
   if (conditions.minPlayCount !== undefined) {
     const playCount = historyStats.actionCounts['PLAY'] || 0;

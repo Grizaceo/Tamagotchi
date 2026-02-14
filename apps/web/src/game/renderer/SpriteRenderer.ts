@@ -1,9 +1,31 @@
 export type AnimationState = 'idle' | 'walk' | 'eat' | 'happy' | 'sad' | 'sick' | 'sleep' | 'evolve';
 
+/** Explicit source rectangle for one frame inside a sprite sheet. */
+export interface FrameRect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+export interface AnimationDef {
+    row: number;
+    /** Starting column offset (default 0). */
+    col?: number;
+    frames: number;
+    loop: boolean;
+    speed: number;
+    /** Optional explicit source rects — overrides grid calculation when present. */
+    frameRects?: FrameRect[];
+}
+
 export interface SpriteConfig {
     src: string;
-    gridSize: number; // e.g. 48
-    animations: Record<AnimationState, { row: number; frames: number; loop: boolean; speed: number }>;
+    /** Column width in the sprite sheet (horizontal spacing). */
+    gridSize: number;
+    /** Row height in the sprite sheet (vertical spacing). Defaults to gridSize. */
+    rowHeight?: number;
+    animations: Record<AnimationState, AnimationDef>;
 }
 
 export class AssetManager {
@@ -16,7 +38,10 @@ export class AssetManager {
                 this.images[key] = img;
                 resolve();
             };
-            img.onerror = reject;
+            img.onerror = (e) => {
+                console.error(`[AssetManager] Failed to load ${key} from ${src}`, e);
+                reject(e);
+            };
             img.src = src;
         });
     }
@@ -32,16 +57,22 @@ export class SpriteRenderer {
     private frameIndex: number = 0;
     private frameTimer: number = 0;
     private assetManager: AssetManager;
-    private assetKey: string;
+    private _assetKey: string;
 
     public x: number = 0;
     public y: number = 0;
     public flipX: boolean = false;
+    /** Display size on canvas (sprites are scaled from gridSize to this) */
+    public displaySize: number = 96;
 
     constructor(assetManager: AssetManager, assetKey: string, config: SpriteConfig) {
         this.assetManager = assetManager;
-        this.assetKey = assetKey;
+        this._assetKey = assetKey;
         this.config = config;
+    }
+
+    get assetKey(): string {
+        return this._assetKey;
     }
 
     setAnimation(anim: AnimationState) {
@@ -74,30 +105,65 @@ export class SpriteRenderer {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        const img = this.assetManager.get(this.assetKey);
-        if (!img) return;
+        const img = this.assetManager.get(this._assetKey);
+        if (!img) {
+            return;
+        }
 
         const animConfig = this.config.animations[this.currentAnim];
-        if (!animConfig) return;
+        if (!animConfig) {
+            return;
+        }
 
-        const row = animConfig.row;
-        const col = this.frameIndex;
-        const size = this.config.gridSize;
+        // Determine source rectangle
+        let srcX: number;
+        let srcY: number;
+        let srcW: number;
+        let srcH: number;
 
-        const srcX = col * size;
-        const srcY = row * size;
+        if (animConfig.frameRects && animConfig.frameRects[this.frameIndex]) {
+            // Explicit per-frame rect — highest priority
+            const rect = animConfig.frameRects[this.frameIndex];
+            srcX = rect.x;
+            srcY = rect.y;
+            srcW = rect.w;
+            srcH = rect.h;
+        } else {
+            // Grid-based calculation
+            const colW = this.config.gridSize;
+            const rowH = this.config.rowHeight ?? this.config.gridSize;
+            const startCol = animConfig.col ?? 0;
+            srcX = (startCol + this.frameIndex) * colW;
+            srcY = animConfig.row * rowH;
+            srcW = colW;
+            srcH = rowH;
+        }
+
+        // Calculate display size maintaining aspect ratio
+        const aspect = srcW / srcH;
+        let drawW: number;
+        let drawH: number;
+        if (aspect >= 1) {
+            drawW = this.displaySize;
+            drawH = this.displaySize / aspect;
+        } else {
+            drawH = this.displaySize;
+            drawW = this.displaySize * aspect;
+        }
+        // Center within the displaySize box
+        const offsetX = (this.displaySize - drawW) / 2;
+        const offsetY = (this.displaySize - drawH) / 2;
 
         ctx.save();
-        // Pixel art scaling
         ctx.imageSmoothingEnabled = false;
 
         if (this.flipX) {
-            ctx.translate(this.x + size, this.y);
+            ctx.translate(this.x + this.displaySize, this.y);
             ctx.scale(-1, 1);
-            ctx.drawImage(img, srcX, srcY, size, size, 0, 0, size, size);
+            ctx.drawImage(img, srcX, srcY, srcW, srcH, offsetX, offsetY, drawW, drawH);
         } else {
             ctx.translate(this.x, this.y);
-            ctx.drawImage(img, srcX, srcY, size, size, 0, 0, size, size);
+            ctx.drawImage(img, srcX, srcY, srcW, srcH, offsetX, offsetY, drawW, drawH);
         }
 
         ctx.restore();

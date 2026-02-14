@@ -8,6 +8,13 @@ if (!canvas) {
 
 const stop = startGameLoop(canvas);
 
+// ── PWA: register service worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {
+    // SW registration failed — app still works, just no offline support
+  });
+}
+
 if (import.meta.hot) {
   import.meta.hot.dispose(() => stop());
 }
