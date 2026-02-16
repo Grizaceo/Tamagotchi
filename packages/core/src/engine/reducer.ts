@@ -15,12 +15,21 @@ export function reduce(state: PetState, action: Action): PetState {
 
   let newState = structuredClone(state);
 
+  // Asegurar que counts existe (defensive programming para hot-loading o estados corruptos)
+  if (!newState.counts) {
+    newState.counts = {
+      totalActions: 0,
+      feed: 0,
+      play: 0,
+      rest: 0,
+      medicate: 0,
+      pet: 0,
+    };
+  }
+
   // Primero aplica un tick (el tiempo siempre avanza)
   // Usamos mutate=true porque ya clonamos el estado arriba
-  // Debug log before tick
-  // console.log('[Reducer] Pre-tick:', newState.stats.health);
   newState = tick(newState, 1, true);
-  // console.log('[Reducer] Post-tick:', newState.stats.health);
 
   if (!newState.alive) {
     return newState;
@@ -48,6 +57,12 @@ export function reduce(state: PetState, action: Action): PetState {
       break;
   }
 
+  // Optimización: Truncar el historial para evitar crecimiento infinito
+  // Mantenemos los últimos 50 eventos para logs de UI
+  if (newState.history.length > 50) {
+    newState.history = newState.history.slice(-50);
+  }
+
   return newState;
 }
 
@@ -65,6 +80,10 @@ function applyFeed(state: PetState, action: Action): PetState {
       hungerAfter: state.stats.hunger,
     })
   );
+
+  // Actualizar contadores
+  state.counts.feed++;
+  state.counts.totalActions++;
 
   return state;
 }
@@ -85,6 +104,10 @@ function applyPlay(state: PetState, action: Action): PetState {
     })
   );
 
+  // Actualizar contadores
+  state.counts.play++;
+  state.counts.totalActions++;
+
   return state;
 }
 
@@ -102,6 +125,10 @@ function applyRest(state: PetState, action: Action): PetState {
       energyAfter: state.stats.energy,
     })
   );
+
+  // Actualizar contadores
+  state.counts.rest++;
+  state.counts.totalActions++;
 
   return state;
 }
@@ -125,6 +152,10 @@ function applyMedicate(state: PetState, action: Action): PetState {
     })
   );
 
+  // Actualizar contadores
+  state.counts.medicate++;
+  state.counts.totalActions++;
+
   return state;
 }
 
@@ -142,6 +173,10 @@ function applyPet(state: PetState, action: Action): PetState {
       happinessAfter: state.stats.happiness,
     })
   );
+
+  // Actualizar contadores
+  state.counts.pet++;
+  state.counts.totalActions++;
 
   return state;
 }
@@ -186,6 +221,8 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
     if (result === 'perfect') gameStats.totalPerfect++;
   }
 
+  // Nota: Minigames no cuentan para "totalActions" ni counters específicos de cuidado (feed, rest, etc)
+  // según la lógica anterior, así que no incrementamos state.counts aquí.
+
   return state;
 }
-

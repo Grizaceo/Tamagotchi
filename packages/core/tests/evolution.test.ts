@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialPetState } from '../src/model/PetState';
-import { reduce } from '../src/engine/reducer';
-import { createAction } from '../src/model/Actions';
-import { tick } from '../src/engine/tick';
 import { evaluateEvolution, applyEvolutionIfNeeded } from '../src/evolution/evaluateEvolution';
 
 describe('evolution', () => {
@@ -62,7 +59,10 @@ describe('evolution', () => {
 
     const evolved = applyEvolutionIfNeeded(state);
     expect(evolved.species).toBe('POMPOMPURIN');
+    // EVOLVED event still pushed to history
     expect(evolved.history.some((e) => e.type === 'EVOLVED')).toBe(true);
+    // And unlockedForms updated
+    expect(evolved.unlockedForms).toContain('POMPOMPURIN');
   });
 
   it('puede evolucionar a MUFFIN (snack addict + low discipline)', () => {
@@ -77,29 +77,11 @@ describe('evolution', () => {
     state.stats.energy = 70;
 
     // Agregar muchos FEED (200+) y MÍNIMO de PLAY (5)
-    for (let i = 0; i < 200; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'FEED' },
-      });
-    }
-    // Mínimo 5 PLAY para cumplir condición
-    for (let i = 0; i < 5; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: 150 + i,
-        data: { action: 'PLAY' },
-      });
-    }
+    state.counts.feed = 200;
+    state.counts.play = 5;
     // Muchos REST para NO cumplir BAGEL (maxSleepInterruptions)
-    for (let i = 0; i < 200; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: 155 + i,
-        data: { action: 'REST' },
-      });
-    }
+    state.counts.rest = 200;
+    state.counts.totalActions = 405;
 
     const newSpecies = evaluateEvolution(state);
     expect(newSpecies).toBe('MUFFIN');
@@ -118,13 +100,8 @@ describe('evolution', () => {
     state.stats.happiness = 40;
 
     // Agregar pocos REST (sleep interruptions = REST count)
-    for (let i = 0; i < 50; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'REST' },
-      });
-    }
+    state.counts.rest = 50;
+    state.counts.totalActions = 50;
 
     const newSpecies = evaluateEvolution(state);
     expect(newSpecies).toBe('BAGEL');
@@ -143,20 +120,9 @@ describe('evolution', () => {
     state.stats.happiness = 20; // Bajo afecto
 
     // Agregar muchas acciones, pero mayoría PET (70%+ de acciones)
-    for (let i = 0; i < 70; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'PET' },
-      });
-    }
-    for (let i = 0; i < 30; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: 70 + i,
-        data: { action: 'FEED' },
-      });
-    }
+    state.counts.pet = 70;
+    state.counts.feed = 30;
+    state.counts.totalActions = 100;
 
     const newSpecies = evaluateEvolution(state);
     expect(newSpecies).toBe('SCONE');
@@ -177,13 +143,8 @@ describe('evolution', () => {
     state.stats.energy = 70;
 
     // Pero también agrega muchos FEED
-    for (let i = 0; i < 150; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'FEED' },
-      });
-    }
+    state.counts.feed = 150;
+    state.counts.totalActions = 150;
 
     const newSpecies = evaluateEvolution(state);
     // Debe ser POMPOMPURIN porque tiene prioridad 1 (menor que MUFFIN)

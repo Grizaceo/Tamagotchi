@@ -132,27 +132,32 @@ export const ACHIEVEMENT_CONDITIONS: AchievementCondition[] = [
  * Evalúa y desbloquea logros
  */
 export function evaluateAchievementUnlocks(state: PetState): PetState {
-  // Pre-calculate stats in a single pass from the input state
-  const stats: AchievementStats = {
-    actionCounts: {},
+  // Use aggregated counts (O(1)) instead of scanning history
+  // Defensive check for counts
+  const counts = state.counts || {
     totalActions: 0,
-    evolvedForms: new Set<string>(),
+    feed: 0,
+    play: 0,
+    rest: 0,
+    medicate: 0,
+    pet: 0
   };
 
-  for (const event of state.history) {
-    if (event.data && typeof (event.data as any).action === 'string') {
-      const action = (event.data as any).action;
-      stats.actionCounts[action] = (stats.actionCounts[action] || 0) + 1;
-      stats.totalActions++;
-    }
-
-    if (event.type === 'EVOLVED') {
-      const toForm = (event.data as any)?.to;
-      if (toForm) {
-        stats.evolvedForms.add(toForm);
-      }
-    }
-  }
+  const stats: AchievementStats = {
+    actionCounts: {
+       'FEED': counts.feed,
+       'PLAY': counts.play,
+       'REST': counts.rest,
+       'MEDICATE': counts.medicate,
+       'PET': counts.pet
+    },
+    totalActions: counts.totalActions,
+    // Combine current species and persistent unlockedForms
+    evolvedForms: new Set([
+      ...(state.unlockedForms || []),
+      state.species
+    ])
+  };
 
   const newUnlocks: string[] = [];
 

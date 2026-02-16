@@ -1,5 +1,4 @@
 import type { PetState } from '../model/PetState';
-import type { GameEvent } from '../model/Events';
 import { getSortedRules, type EvolutionSpecies } from './evolutionRules';
 
 /**
@@ -32,11 +31,10 @@ export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined
   }
 
   const rules = getSortedRules();
-  // Analizamos la historia una sola vez para todas las reglas
-  const historyStats = analyzeHistory(state.history);
+  // Analizamos los contadores agregados en PetState (O(1))
 
   for (const rule of rules) {
-    if (checkConditions(state, rule.conditions, historyStats)) {
+    if (checkConditions(state, rule.conditions)) {
       console.log(`[PomPom Debug] Evolving FLAN_ADULT -> ${rule.targetSpecies} (Rule=${rule.name})`);
       return rule.targetSpecies;
     }
@@ -45,96 +43,73 @@ export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined
   return undefined; // No cumple ninguna condición
 }
 
-interface HistoryStats {
-  actionCounts: Record<string, number>;
-  totalActions: number;
-}
-
-function analyzeHistory(history: GameEvent[]): HistoryStats {
-  const counts: Record<string, number> = {};
-  let total = 0;
-
-  for (const event of history) {
-    const data = event.data as Record<string, unknown> | undefined;
-    if (data && typeof data.action === 'string') {
-      const action = data.action;
-      counts[action] = (counts[action] || 0) + 1;
-      total++;
-    }
-  }
-
-  return { actionCounts: counts, totalActions: total };
-}
-
 /**
  * Verifica si el estado cumple todas las condiciones de una regla
  */
 function checkConditions(
   state: PetState,
-  conditions: Record<string, number | undefined>,
-  historyStats: HistoryStats
+  conditions: Record<string, number | undefined>
 ): boolean {
-  // minTicks
+  // Validaciones básicas de stats actuales
   if (conditions.minTicks !== undefined && state.totalTicks < conditions.minTicks) {
     return false;
   }
-
-  // minHappiness
   if (conditions.minHappiness !== undefined && state.stats.happiness < conditions.minHappiness) {
     return false;
   }
-
-  // maxHunger
   if (conditions.maxHunger !== undefined && state.stats.hunger > conditions.maxHunger) {
     return false;
   }
-
-  // minHealth
   if (conditions.minHealth !== undefined && state.stats.health < conditions.minHealth) {
     return false;
   }
-
-  // minEnergy
   if (conditions.minEnergy !== undefined && state.stats.energy < conditions.minEnergy) {
     return false;
   }
 
-  // maxFeeds: contar acciones FEED en historia
+  // Validaciones basadas en histórico acumulado (usando state.counts)
+  // Defensive check for counts (in case of old state or partial load)
+  const counts = state.counts || {
+    feed: 0,
+    play: 0,
+    rest: 0,
+    medicate: 0,
+    pet: 0,
+    totalActions: 0
+  };
+
+  // maxFeeds
   if (conditions.maxFeeds !== undefined) {
-    const feedCount = historyStats.actionCounts['FEED'] || 0;
-    if (feedCount > conditions.maxFeeds) {
+    if (counts.feed > conditions.maxFeeds) {
       return false;
     }
   }
 
-  // minFeeds: mínimo de acciones FEED en historia (para Snack Addict / MUFFIN)
+  // minFeeds
   if (conditions.minFeeds !== undefined) {
-    const feedCount = historyStats.actionCounts['FEED'] || 0;
-    if (feedCount < conditions.minFeeds) {
+    if (counts.feed < conditions.minFeeds) {
       return false;
     }
   }
 
-  // minPlayCount: contar acciones PLAY en historia
+  // minPlayCount
   if (conditions.minPlayCount !== undefined) {
-    const playCount = historyStats.actionCounts['PLAY'] || 0;
-    if (playCount < conditions.minPlayCount) {
+    if (counts.play < conditions.minPlayCount) {
       return false;
     }
   }
 
-  // maxSleepInterruptions: contar acciones REST
+  // maxSleepInterruptions (basado en contador REST)
   if (conditions.maxSleepInterruptions !== undefined) {
-    const restCount = historyStats.actionCounts['REST'] || 0;
-    if (restCount > conditions.maxSleepInterruptions) {
+    if (counts.rest > conditions.maxSleepInterruptions) {
       return false;
     }
   }
 
-  // minCleanliness: inversión de "Pet" count (cuidados afectuosos)
+  // minCleanliness: inversión de "Pet" count (cuidados afectuosos) / total
   if (conditions.minCleanliness !== undefined) {
-    const petCount = historyStats.actionCounts['PET'] || 0;
-    const totalActions = historyStats.totalActions;
+    const petCount = counts.pet;
+    const totalActions = counts.totalActions;
     // Limpieza baja si poco PET en proporción a total
     const cleanliness = totalActions > 0 ? (petCount / totalActions) * 100 : 0;
     if (cleanliness < conditions.minCleanliness) {
@@ -160,6 +135,15 @@ export function applyEvolutionIfNeeded(state: PetState): PetState {
       timestamp: state.totalTicks,
       data: { from: state.species, to: newSpecies },
     });
+
+    // Registrar forma desbloqueada para persistencia (ya que el historial se trunca)
+    if (!evolved.unlockedForms) {
+        evolved.unlockedForms = [];
+    }
+    if (!evolved.unlockedForms.includes(newSpecies)) {
+      evolved.unlockedForms.push(newSpecies);
+    }
+
     return evolved;
   }
 

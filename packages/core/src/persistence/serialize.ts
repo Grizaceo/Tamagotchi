@@ -1,4 +1,4 @@
-import type { PetState } from '../model/PetState';
+import type { PetState, InteractionCounts } from '../model/PetState';
 import type { SaveData } from '../model/SaveData';
 import { SAVE_DATA_VERSION } from '../model/SaveData';
 import { createInitialPetState } from '../model/PetState';
@@ -32,6 +32,8 @@ export function serialize(state: PetState): SaveData {
       tick: event.timestamp,
       data: event.data as Record<string, unknown> | undefined,
     })),
+    counts: state.counts,
+    unlockedForms: state.unlockedForms, // Nuevo en v2
     unlockedGifts: state.unlockedGifts,
     unlockedAchievements: state.unlockedAchievements,
     album: state.album,
@@ -48,25 +50,45 @@ export function serialize(state: PetState): SaveData {
 
 /**
  * Convierte SaveData a PetState
- * Maneja versionado para migrar datos de versiones antiguas si es necesario
  */
 export function deserialize(data: SaveData): PetState {
-  // Validar versión
-  if (data.version !== SAVE_DATA_VERSION) {
-    console.warn(
-      `SaveData version mismatch: got ${data.version}, expected ${SAVE_DATA_VERSION}. Applying migrations...`
-    );
-    return migrateFromOlderVersion(data);
-  }
-
-  // Validar que el estado sea válido
-  if (!data.state || data.state.stats == null) {
+  if (!data || !data.state || data.state.stats == null) {
     console.warn('SaveData corrupted, returning initial state');
     return createInitialPetState();
   }
 
+  // Migración de counts (v1 -> v2)
+  let counts: InteractionCounts;
+  if (data.counts) {
+    counts = data.counts;
+  } else {
+    console.log('Migrating save data: Calculating counts from history...');
+    counts = calculateCountsFromHistory(data.history || []);
+  }
+
+  // Migración de unlockedForms (v1 -> v2)
+  let unlockedForms: string[];
+  if (data.unlockedForms) {
+    unlockedForms = data.unlockedForms;
+  } else {
+    console.log('Migrating save data: Calculating unlocked forms from history...');
+    unlockedForms = calculateUnlockedFormsFromHistory(data.history || []);
+    // Asegurar que la especie actual esté incluida
+    if (data.state.species && !unlockedForms.includes(data.state.species)) {
+      unlockedForms.push(data.state.species);
+    }
+  }
+
+  const fullHistory = (data.history || []).map((h) => ({
+    type: (h as any).type ?? 'STAT_CHANGED',
+    timestamp: h.tick,
+    data: (h as any).data,
+  }));
+
+  const truncatedHistory = fullHistory.length > 50 ? fullHistory.slice(-50) : fullHistory;
+
   return {
-    species: (data.state.species as 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE') || 'FLAN_BEBE',
+    species: (data.state.species as any) || 'FLAN_BEBE',
     stats: {
       hunger: Math.max(0, Math.min(100, data.state.stats.hunger ?? 50)),
       happiness: Math.max(0, Math.min(100, data.state.stats.happiness ?? 50)),
@@ -76,16 +98,14 @@ export function deserialize(data: SaveData): PetState {
     },
     alive: data.state.alive ?? true,
     totalTicks: data.totalTicks ?? 0,
-    history: (data.history ?? []).map((h) => ({
-      type: (h as any).type ?? 'STAT_CHANGED',
-      timestamp: h.tick,
-      data: (h as any).data,
-    })),
+    history: truncatedHistory,
+    counts: counts,
+    unlockedForms: unlockedForms,
     unlockedGifts: data.unlockedGifts ?? [],
     unlockedAchievements: data.unlockedAchievements ?? [],
     album: data.album ?? {},
     minigames: {
-      lastPlayed: data.state.minigames?.lastPlayed ?? {},
+      lastPlayed: data.state.minigames?.lastPlayed ?? { pudding: -1000, memory: -1000 },
       games: data.state.minigames?.games ?? {
         pudding: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
         memory: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
@@ -102,25 +122,50 @@ export function deserialize(data: SaveData): PetState {
   };
 }
 
-/**
- * Maneja migración de versiones antiguas
- */
-function migrateFromOlderVersion(data: SaveData): PetState {
-  // Por ahora, solo hay v1. Si llega una versión mayor o menor, usa default.
-  console.warn('No migration path for SaveData version', data.version);
-  return createInitialPetState();
+function calculateCountsFromHistory(history: any[]): InteractionCounts {
+  const counts: InteractionCounts = {
+    totalActions: 0,
+    feed: 0,
+    play: 0,
+    rest: 0,
+    medicate: 0,
+    pet: 0,
+  };
+
+  for (const event of history) {
+    if (event.data && typeof event.data.action === 'string') {
+      const action = event.data.action;
+      if (action === 'FEED') counts.feed++;
+      if (action === 'PLAY') counts.play++;
+      if (action === 'REST') counts.rest++;
+      if (action === 'MEDICATE') counts.medicate++;
+      if (action === 'PET') counts.pet++;
+
+      if (['FEED', 'PLAY', 'REST', 'MEDICATE', 'PET'].includes(action)) {
+        counts.totalActions++;
+      }
+    }
+  }
+
+  return counts;
 }
 
-/**
- * Serializa PetState a JSON string
- */
+function calculateUnlockedFormsFromHistory(history: any[]): string[] {
+  const forms = new Set<string>();
+  forms.add('FLAN_BEBE');
+
+  for (const event of history) {
+    if (event.type === 'EVOLVED' && event.data && typeof event.data.to === 'string') {
+      forms.add(event.data.to);
+    }
+  }
+  return Array.from(forms);
+}
+
 export function serializeToJSON(state: PetState): string {
   return JSON.stringify(serialize(state));
 }
 
-/**
- * Deserializa PetState desde JSON string
- */
 export function deserializeFromJSON(json: string): PetState {
   try {
     const data = JSON.parse(json) as SaveData;
