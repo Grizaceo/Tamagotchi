@@ -1,5 +1,6 @@
 import type { SpriteConfig, AnimationDef, AnimationState } from './SpriteRenderer';
 import type { FrameRect } from './SpriteRenderer';
+import { LoremPicsum } from '../utils/LoremPicsum';
 
 /**
  * Pompompurin sprite sheet — 1024×1024 JPEG.
@@ -72,6 +73,12 @@ const SLEEP_RECTS: FrameRect[] = [
     fr(537, 860, 165, 144),
 ];
 
+// ── Misc (Row 4 first 2): y 691-844, x at 133/312 ──
+const MISC_RECTS: FrameRect[] = [
+    fr(133, 691, 164, 154),
+    fr(312, 691, 164, 154),
+];
+
 const POMPOM_ANIMATIONS: Record<AnimationState, AnimationDef> = {
     idle: { row: 0, frames: 2, loop: true, speed: 2, frameRects: IDLE_RECTS },
     walk: { row: 1, frames: 4, loop: true, speed: 4, frameRects: WALK_RECTS },
@@ -81,6 +88,7 @@ const POMPOM_ANIMATIONS: Record<AnimationState, AnimationDef> = {
     sick: { row: 4, frames: 2, loop: true, speed: 1, frameRects: SICK_RECTS },
     sleep: { row: 5, frames: 2, loop: true, speed: 1, frameRects: SLEEP_RECTS },
     evolve: { row: 0, frames: 2, loop: true, speed: 10, frameRects: IDLE_RECTS },
+    dead: { row: 4, frames: 2, loop: true, speed: 1, frameRects: MISC_RECTS }, // Use "Misc" for dead
 };
 
 /**
@@ -97,18 +105,59 @@ const COMMON_ANIMATIONS_GRID: Record<AnimationState, AnimationDef> = {
     sick: { row: 3, frames: 2, loop: true, speed: 1 },
     sleep: { row: 3, frames: 2, loop: true, speed: 1 },
     evolve: { row: 0, frames: 2, loop: true, speed: 10 },
+    dead: { row: 3, frames: 2, loop: true, speed: 1 }, // Fallback to sick row
+};
+
+// ── Simple Grid (Rows 0-7) ──
+const SIMPLE_GRID_ANIMATIONS: Record<AnimationState, AnimationDef> = {
+    idle: { row: 0, frames: 2, loop: true, speed: 2 },
+    walk: { row: 1, frames: 4, loop: true, speed: 4 },
+    eat: { row: 2, frames: 4, loop: false, speed: 4 },
+    happy: { row: 3, frames: 2, loop: true, speed: 4 },
+    sad: { row: 4, frames: 2, loop: true, speed: 2 },
+    sick: { row: 5, frames: 2, loop: true, speed: 1 },
+    sleep: { row: 6, frames: 2, loop: true, speed: 1 },
+    evolve: { row: 0, frames: 2, loop: true, speed: 10 },
+    dead: { row: 7, frames: 2, loop: true, speed: 1 },
+};
+
+// ── FLAN BEBE v3 (1 row, 4 frames total) ──
+const FLAN_BEBE_ANIMATIONS_V3: Record<AnimationState, AnimationDef> = {
+    idle: { row: 0, frames: 4, loop: true, speed: 2 },
+    walk: { row: 0, frames: 4, loop: true, speed: 4 },   // Reuse row 0
+    eat: { row: 0, frames: 4, loop: false, speed: 4 },   // Reuse row 0
+    happy: { row: 0, frames: 4, loop: true, speed: 4 },  // Reuse row 0
+    sad: { row: 0, frames: 4, loop: true, speed: 2 },
+    sick: { row: 0, frames: 4, loop: true, speed: 1 },
+    sleep: { row: 0, frames: 4, loop: true, speed: 1 },
+    evolve: { row: 0, frames: 4, loop: true, speed: 10 },
+    dead: { row: 0, frames: 4, loop: true, speed: 1 },
+};
+
+// ── FLAN BEBE v2 (4 rows) ──
+const FLAN_BEBE_ANIMATIONS_V2: Record<AnimationState, AnimationDef> = {
+    idle: { row: 0, frames: 4, loop: true, speed: 2 },
+    walk: { row: 1, frames: 4, loop: true, speed: 4 },
+    eat: { row: 2, frames: 4, loop: false, speed: 4 },
+    happy: { row: 3, frames: 4, loop: true, speed: 4 },
+    sad: { row: 0, frames: 4, loop: true, speed: 2 },    // Reuse Idle
+    sick: { row: 0, frames: 4, loop: true, speed: 1 },   // Reuse Idle
+    sleep: { row: 0, frames: 4, loop: true, speed: 1 },  // Reuse Idle
+    evolve: { row: 0, frames: 4, loop: true, speed: 10 },// Reuse Idle
+    dead: { row: 0, frames: 4, loop: true, speed: 1 },   // Reuse Idle
 };
 
 export const SPRITE_CONFIGS: Record<string, SpriteConfig> = {
     'FLAN_BEBE': {
-        src: '/assets/tamagotchi_spritesheet_1768544718465.png',
-        gridSize: 256,
-        animations: POMPOM_ANIMATIONS,
+        src: '/assets/flan_bebe_40px.png',
+        gridSize: 40,
+        animations: FLAN_BEBE_ANIMATIONS_V3,
     },
     'FLAN_TEEN': {
-        src: '/assets/tamagotchi_spritesheet_1768544718465.png',
-        gridSize: 256,
-        animations: POMPOM_ANIMATIONS,
+        // Placeholder: use baby sprite clean
+        src: '/assets/flan_bebe_40px.png',
+        gridSize: 40,
+        animations: FLAN_BEBE_ANIMATIONS_V3,
     },
     'FLAN_ADULT': {
         src: '/assets/tamagotchi_spritesheet_1768544718465.png',
@@ -135,4 +184,16 @@ export const SPRITE_CONFIGS: Record<string, SpriteConfig> = {
         gridSize: 256,
         animations: COMMON_ANIMATIONS_GRID,
     },
+};
+
+/**
+ * Example placeholder sprite configuration using Lorem Picsum.
+ * Usage: Replace an existing sprite config with PLACEHOLDER_SPRITE
+ * or use it as a fallback.
+ */
+export const PLACEHOLDER_SPRITE: SpriteConfig = {
+    // Generates a consistent 1024x1024 image seeded with 'tamagotchi'
+    src: LoremPicsum.getSeeded('tamagotchi', 1024, 1024),
+    gridSize: 256,
+    animations: COMMON_ANIMATIONS_GRID,
 };
