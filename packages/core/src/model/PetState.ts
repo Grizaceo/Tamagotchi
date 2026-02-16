@@ -17,12 +17,23 @@ export interface MinigamesState {
   games: Record<MinigameId, MinigameStats>;
 }
 
+export interface InteractionCounts {
+  totalActions: number;
+  feed: number;
+  play: number;
+  rest: number;
+  medicate: number;
+  pet: number;
+}
+
 export interface PetState {
   species: 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE';
   stats: Stats;
   alive: boolean;
   totalTicks: number;
-  history: GameEvent[];
+  history: GameEvent[]; // Note: Now capped at N recent events for UI log
+  counts: InteractionCounts; // Aggregated counts for game logic
+  unlockedForms: string[]; // List of species forms this pet has evolved into (persistent)
   unlockedGifts: string[];
   unlockedAchievements: string[];
   album: Record<string, unknown>;
@@ -44,6 +55,15 @@ export function createInitialPetState(): PetState {
     alive: true,
     totalTicks: 0,
     history: [],
+    counts: {
+      totalActions: 0,
+      feed: 0,
+      play: 0,
+      rest: 0,
+      medicate: 0,
+      pet: 0,
+    },
+    unlockedForms: ['FLAN_BEBE'], // Always starts with base form
     unlockedGifts: [],
     unlockedAchievements: [],
     album: {},

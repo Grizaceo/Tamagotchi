@@ -32,6 +32,15 @@ export interface SaveData {
     tick: number;
     data?: Record<string, unknown>;
   }>;
+  counts?: {
+    totalActions: number;
+    feed: number;
+    play: number;
+    rest: number;
+    medicate: number;
+    pet: number;
+  };
+  unlockedForms?: string[]; // New in v2
   unlockedGifts: string[];
   unlockedAchievements: string[];
   album: Record<string, unknown>;
@@ -45,6 +54,4 @@ export interface SaveData {
   };
 }
 
-export const SAVE_DATA_VERSION = 1;
-
-
+export const SAVE_DATA_VERSION = 2;

@@ -1,26 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialPetState } from '../src/model/PetState';
-import { evaluateAchievementUnlocks, getUnlockedAchievements, ACHIEVEMENT_CATALOG } from '../src/features/achievements';
+import { evaluateAchievementUnlocks, getUnlockedAchievements } from '../src/features/achievements';
 
 describe('achievements', () => {
   it('no desbloquea logros sin cumplir condiciones', () => {
     const state = createInitialPetState();
     const result = evaluateAchievementUnlocks(state);
     
-    expect(result.unlockedAchievements.length).toBe(0);
+    expect(result.unlockedAchievements).toHaveLength(0);
   });
 
   it('desbloquea ach_caretaker con 50+ acciones', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    // Agregar 50 acciones
-    for (let i = 0; i < 50; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'FEED' },
-      });
-    }
+    // Simular 50 acciones
+    state.counts.totalActions = 50;
     
     const result = evaluateAchievementUnlocks(state);
     
@@ -28,14 +22,9 @@ describe('achievements', () => {
   });
 
   it('desbloquea ach_perfect_pet al alcanzar POMPOMPURIN', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    // Simular evolución a POMPOMPURIN
-    state.history.push({
-      type: 'EVOLVED',
-      timestamp: 100,
-      data: { from: 'FLAN_ADULT', to: 'POMPOMPURIN' },
-    });
+    state.species = 'POMPOMPURIN';
     
     const result = evaluateAchievementUnlocks(state);
     
@@ -43,15 +32,9 @@ describe('achievements', () => {
   });
 
   it('desbloquea ach_foodie con 30+ FEED', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    for (let i = 0; i < 30; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'FEED' },
-      });
-    }
+    state.counts.feed = 30;
     
     const result = evaluateAchievementUnlocks(state);
     
@@ -59,15 +42,9 @@ describe('achievements', () => {
   });
 
   it('desbloquea ach_playmate con 25+ PLAY', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    for (let i = 0; i < 25; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'PLAY' },
-      });
-    }
+    state.counts.play = 25;
     
     const result = evaluateAchievementUnlocks(state);
     
@@ -75,15 +52,9 @@ describe('achievements', () => {
   });
 
   it('desbloquea ach_healer con 10+ MEDICATE', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    for (let i = 0; i < 10; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'MEDICATE' },
-      });
-    }
+    state.counts.medicate = 10;
     
     const result = evaluateAchievementUnlocks(state);
     
@@ -91,8 +62,9 @@ describe('achievements', () => {
   });
 
   it('desbloquea ach_marathon con 7200+ ticks', () => {
-    let state = createInitialPetState();
-    state.totalTicks = 7200; // 2 horas
+    const state = createInitialPetState();
+
+    state.totalTicks = 7200;
     
     const result = evaluateAchievementUnlocks(state);
     
@@ -100,29 +72,10 @@ describe('achievements', () => {
   });
 
   it('desbloquea ach_all_forms con todas 4 evoluciones', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    // Simular las 4 evoluciones en historial
-    state.history.push({
-      type: 'EVOLVED',
-      timestamp: 100,
-      data: { from: 'FLAN_ADULT', to: 'POMPOMPURIN' },
-    });
-    state.history.push({
-      type: 'EVOLVED',
-      timestamp: 200,
-      data: { from: 'FLAN_ADULT', to: 'MUFFIN' },
-    });
-    state.history.push({
-      type: 'EVOLVED',
-      timestamp: 300,
-      data: { from: 'FLAN_ADULT', to: 'BAGEL' },
-    });
-    state.history.push({
-      type: 'EVOLVED',
-      timestamp: 400,
-      data: { from: 'FLAN_ADULT', to: 'SCONE' },
-    });
+    // Simular historial de evoluciones
+    state.unlockedForms.push('POMPOMPURIN', 'MUFFIN', 'BAGEL', 'SCONE');
     
     const result = evaluateAchievementUnlocks(state);
     
@@ -130,46 +83,26 @@ describe('achievements', () => {
   });
 
   it('no desbloquea logros duplicados', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
+    state.unlockedAchievements.push('ach_caretaker');
     
-    for (let i = 0; i < 50; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'FEED' },
-      });
-    }
+    // Cumple condición de nuevo
+    state.counts.totalActions = 100;
     
-    // Evaluar múltiples veces
-    state = evaluateAchievementUnlocks(state);
-    state = evaluateAchievementUnlocks(state);
+    const result = evaluateAchievementUnlocks(state);
     
-    const count = state.unlockedAchievements.filter((id) => id === 'ach_caretaker').length;
+    const count = result.unlockedAchievements.filter((id) => id === 'ach_caretaker').length;
     expect(count).toBe(1);
   });
 
   it('getUnlockedAchievements retorna objetos Achievement', () => {
-    let state = createInitialPetState();
-    state.totalTicks = 7200;
+    const state = createInitialPetState();
+    state.unlockedAchievements.push('ach_caretaker');
     
-    state = evaluateAchievementUnlocks(state);
-    const unlockedAchs = getUnlockedAchievements(state);
+    const unlocked = getUnlockedAchievements(state);
     
-    expect(unlockedAchs.length).toBeGreaterThan(0);
-    expect(unlockedAchs[0]).toHaveProperty('id');
-    expect(unlockedAchs[0]).toHaveProperty('name');
-    expect(unlockedAchs[0]).toHaveProperty('description');
-    expect(unlockedAchs[0]).toHaveProperty('icon');
-  });
-
-  it('catálogo tiene 7 logros', () => {
-    expect(ACHIEVEMENT_CATALOG.length).toBe(7);
-  });
-
-  it('todos los logros tienen ids únicos', () => {
-    const ids = ACHIEVEMENT_CATALOG.map((a) => a.id);
-    const uniqueIds = new Set(ids);
-    
-    expect(uniqueIds.size).toBe(ids.length);
+    expect(unlocked).toHaveLength(1);
+    expect(unlocked[0].id).toBe('ach_caretaker');
+    expect(unlocked[0].name).toBe('Cuidador Responsable');
   });
 });

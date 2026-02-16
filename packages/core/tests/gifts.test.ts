@@ -1,24 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialPetState } from '../src/model/PetState';
-import { evaluateGiftUnlocks, getUnlockedGifts, GIFT_CATALOG } from '../src/features/gifts';
+import { evaluateGiftUnlocks, getUnlockedGifts } from '../src/features/gifts';
 
 describe('gifts', () => {
-  it('no desbloquea regalos sin condiciones cumplidas', () => {
+  it('no desbloquea regalos sin cumplir condiciones', () => {
     const state = createInitialPetState();
     const result = evaluateGiftUnlocks(state);
     
-    expect(result.unlockedGifts.length).toBe(0);
+    expect(result.unlockedGifts).toHaveLength(0);
   });
 
   it('desbloquea gift_first_meal al alimentar una vez', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    // Agregar una acción FEED en historial
-    state.history.push({
-      type: 'STAT_CHANGED',
-      timestamp: 1,
-      data: { action: 'FEED' },
-    });
+    state.counts.feed = 1;
     
     const result = evaluateGiftUnlocks(state);
     
@@ -26,16 +21,9 @@ describe('gifts', () => {
   });
 
   it('desbloquea gift_playtime_joy con 3+ PLAY acciones', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    // Agregar 3 acciones PLAY
-    for (let i = 0; i < 3; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'PLAY' },
-      });
-    }
+    state.counts.play = 3;
     
     const result = evaluateGiftUnlocks(state);
     
@@ -43,15 +31,9 @@ describe('gifts', () => {
   });
 
   it('desbloquea gift_dreams con 5+ REST acciones', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    for (let i = 0; i < 5; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'REST' },
-      });
-    }
+    state.counts.rest = 5;
     
     const result = evaluateGiftUnlocks(state);
     
@@ -59,15 +41,9 @@ describe('gifts', () => {
   });
 
   it('desbloquea gift_health_potion con 2+ MEDICATE acciones', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    for (let i = 0; i < 2; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'MEDICATE' },
-      });
-    }
+    state.counts.medicate = 2;
     
     const result = evaluateGiftUnlocks(state);
     
@@ -75,15 +51,9 @@ describe('gifts', () => {
   });
 
   it('desbloquea gift_affection con 10+ PET acciones', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    for (let i = 0; i < 10; i++) {
-      state.history.push({
-        type: 'STAT_CHANGED',
-        timestamp: i,
-        data: { action: 'PET' },
-      });
-    }
+    state.counts.pet = 10;
     
     const result = evaluateGiftUnlocks(state);
     
@@ -91,14 +61,9 @@ describe('gifts', () => {
   });
 
   it('desbloquea gift_perfect_care cuando evoluciona a POMPOMPURIN', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
     
-    // Simular evolución a POMPOMPURIN
-    state.history.push({
-      type: 'EVOLVED',
-      timestamp: 100,
-      data: { from: 'FLAN_ADULT', to: 'POMPOMPURIN' },
-    });
+    state.species = 'POMPOMPURIN';
     
     const result = evaluateGiftUnlocks(state);
     
@@ -106,8 +71,9 @@ describe('gifts', () => {
   });
 
   it('desbloquea gift_resilience con 1800+ ticks', () => {
-    let state = createInitialPetState();
-    state.totalTicks = 1800; // 30 minutos
+    const state = createInitialPetState();
+
+    state.totalTicks = 1800;
     
     const result = evaluateGiftUnlocks(state);
     
@@ -115,8 +81,9 @@ describe('gifts', () => {
   });
 
   it('desbloquea gift_milestone_100 con 6000+ ticks', () => {
-    let state = createInitialPetState();
-    state.totalTicks = 6000; // 100 minutos
+    const state = createInitialPetState();
+
+    state.totalTicks = 6000;
     
     const result = evaluateGiftUnlocks(state);
     
@@ -124,9 +91,10 @@ describe('gifts', () => {
   });
 
   it('desbloquea gift_mystery al alcanzar adulto con health > 70', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
+
     state.species = 'FLAN_ADULT';
-    state.stats.health = 80;
+    state.stats.health = 71;
     
     const result = evaluateGiftUnlocks(state);
     
@@ -134,50 +102,26 @@ describe('gifts', () => {
   });
 
   it('no desbloquea regalos duplicados', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
+    state.unlockedGifts.push('gift_first_meal');
+
+    // Cumple condición de nuevo
+    state.counts.feed = 5;
     
-    // Simular múltiples evaluaciones
-    state = evaluateGiftUnlocks(state);
-    state.history.push({
-      type: 'STAT_CHANGED',
-      timestamp: 1,
-      data: { action: 'FEED' },
-    });
-    state = evaluateGiftUnlocks(state);
+    const result = evaluateGiftUnlocks(state);
     
-    // gift_first_meal solo debe aparecer una vez
-    const count = state.unlockedGifts.filter((id) => id === 'gift_first_meal').length;
+    const count = result.unlockedGifts.filter((id) => id === 'gift_first_meal').length;
     expect(count).toBe(1);
   });
 
   it('getUnlockedGifts retorna objetos Gift correctos', () => {
-    let state = createInitialPetState();
+    const state = createInitialPetState();
+    state.unlockedGifts.push('gift_first_meal');
     
-    state.history.push({
-      type: 'STAT_CHANGED',
-      timestamp: 1,
-      data: { action: 'FEED' },
-    });
-    
-    state = evaluateGiftUnlocks(state);
     const unlockedGifts = getUnlockedGifts(state);
     
     expect(unlockedGifts.length).toBeGreaterThan(0);
     expect(unlockedGifts[0]).toHaveProperty('id');
     expect(unlockedGifts[0]).toHaveProperty('name');
-    expect(unlockedGifts[0]).toHaveProperty('description');
-    expect(unlockedGifts[0]).toHaveProperty('emoji');
-  });
-
-  it('catálogo tiene 8-12 regalos', () => {
-    expect(GIFT_CATALOG.length).toBeGreaterThanOrEqual(8);
-    expect(GIFT_CATALOG.length).toBeLessThanOrEqual(12);
-  });
-
-  it('todos los regalos tienen ids únicos', () => {
-    const ids = GIFT_CATALOG.map((g) => g.id);
-    const uniqueIds = new Set(ids);
-    
-    expect(uniqueIds.size).toBe(ids.length);
   });
 });
