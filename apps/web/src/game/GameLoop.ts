@@ -24,7 +24,7 @@ import {
   type SceneId,
 } from './Scenes';
 
-const STORAGE_KEY = 'pompom-save-debug-v1'; // Force fresh save
+const STORAGE_KEY = 'pompom-save';
 const TICK_MS = 1000;
 const SAVE_INTERVAL_MS = 5000;
 
@@ -33,7 +33,6 @@ const SAVE_INTERVAL_MS = 5000;
  * Maneja ticks, persistencia, input y minijuegos.
  */
 export function startGameLoop(canvas: HTMLCanvasElement): () => void {
-  console.log('[PomPom] Starting GameLoop with DEBUG key:', STORAGE_KEY);
   const ctx = canvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
 
@@ -59,7 +58,6 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
   let lastSaveAt = 0;
   let pendingSave = false;
   let rafId = 0;
-  let isResetting = false;
 
   // --- Visual System Initialization ---
   let spriteRenderer: any = null; // typed as SpriteRenderer
@@ -72,11 +70,9 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     import('./renderer/SpriteRenderer'),
     import('./renderer/UIRenderer'),
     import('./renderer/SpriteConfigs'),
-    import('./assets/PlaceholderIcons'),
-  ]).then(([modSprite, modUI, modConfig, modIcons]) => {
+  ]).then(([modSprite, modUI, modConfig]) => {
     const { AssetManager, SpriteRenderer: SR } = modSprite;
     const { UIRenderer } = modUI;
-    const { loadPlaceholders } = modIcons;
     SPRITE_CONFIGS = modConfig.SPRITE_CONFIGS;
     SpriteRenderer = SR;
 
@@ -84,17 +80,11 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     uiRenderer = new UIRenderer(assetManager);
 
     return uiRenderer.load().then(() => {
-      // Load placeholder icons
-      return loadPlaceholders(assetManager);
-    }).then(() => {
       const promises = [];
       for (const key in SPRITE_CONFIGS) {
         promises.push(assetManager.load(key, SPRITE_CONFIGS[key].src));
       }
       return Promise.all(promises);
-    }).then(() => {
-      // Create the initial sprite renderer now that assets are loaded
-      updateSpriteRenderer(petState);
     });
   }).catch((e) => {
     console.error('Failed to load assets', e);
@@ -104,20 +94,17 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     const species = state.species;
     const config = SPRITE_CONFIGS[species] || SPRITE_CONFIGS['FLAN_BEBE']; // Fallback
 
-    console.log(`[PomPom Debug] updateSpriteRenderer: species=${species}, health=${state.stats.health}, alive=${state.alive}, usingConfigFor=${SPRITE_CONFIGS[species] ? species : 'FALLBACK(FLAN_BEBE)'}`);
-
     if (!spriteRenderer || spriteRenderer.assetKey !== species) {
-      console.log(`[PomPom Debug] Creating new SpriteRenderer for ${species}`);
       spriteRenderer = new SpriteRenderer(assetManager, species, config);
-      spriteRenderer.displaySize = 96; // Render at 96px on 320×240 canvas
-      spriteRenderer.x = (320 - 96) / 2;
-      spriteRenderer.y = (240 - 96) / 2 + 10; // A bit lower than center
+      // Center sprite roughly
+      spriteRenderer.x = (320 - 48) / 2;
+      spriteRenderer.y = (240 - 48) / 2 + 20; // A bit lower than center
     }
 
     // Update Animation State based on PetState
-    // Priority: Dead > Sick > Sleep > Sad > Happy > Eat > Walk/Idle
+    // Priority: Sick > Sleep > Sad > Happy > Eat > Walk/Idle
     let anim = 'idle';
-    if (!state.alive) anim = 'dead';
+    if (!state.alive) anim = 'sick'; // Dead/Sick generic
     else if (state.stats.health < 30) anim = 'sick';
     else if (state.stats.happiness < 30) anim = 'sad';
     else if (state.stats.happiness > 80) anim = 'happy';
@@ -130,7 +117,8 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
     spriteRenderer.setAnimation(anim);
   }
 
-
+  // @ts-ignore
+  let petSprite: HTMLImageElement | null = null; // Deprecated but kept for compatibility with old renderFrame signature if needed temporarily
 
   minigameManager.setOnGameComplete((result) => {
     const action = createAction('PLAY_MINIGAME', petState.totalTicks, {
@@ -171,20 +159,18 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
       minigameManager.draw();
     }
 
-    // Update Sprite System — create or update sprite renderer once assets are loaded
-    if (SPRITE_CONFIGS && SpriteRenderer) {
+    // Update Sprite System
+    if (spriteRenderer) {
       updateSpriteRenderer(petState);
-      if (spriteRenderer) {
-        spriteRenderer.update(delta);
-      }
+      spriteRenderer.update(delta);
     }
 
     // Render Frame
     renderFrame(ctx, petState, uiState, now, {
       minigameFrame: uiState.scene === 'Minigames' && uiState.minigameMode === 'playing' ? minigameCanvas : null,
+      petSprite: null, // Legacy
       spriteRenderer, // Pass new renderer
       uiRenderer: uiRenderer || undefined,     // Pass new renderer
-      assetManager,
     });
 
     if (pendingSave && now - lastSaveAt > SAVE_INTERVAL_MS) {
@@ -217,17 +203,6 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
         break;
       case 'reducedMotion':
         petState = { ...petState, settings: { ...settings, reducedMotion: !settings.reducedMotion } };
-        break;
-      case 'reset':
-        if (!uiState.settingsConfirmation) {
-          uiState.settingsConfirmation = true;
-          return; // Wait for confirmation
-        }
-        // Confirmed
-        console.log('[PomPom] RESET CONFIRMED. Wiping data...');
-        isResetting = true; // Prevent auto-save on unload
-        localStorage.removeItem(STORAGE_KEY);
-        window.location.reload();
         break;
       default:
         break;
@@ -299,22 +274,14 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
         }
         break;
       case 'Settings':
-        if (uiState.settingsConfirmation) {
-          if (command === 'ENTER') {
-            toggleSetting('reset'); // Confirm reset
-          } else if (command === 'BACK' || command === 'LEFT' || command === 'RIGHT') {
-            uiState.settingsConfirmation = false; // Cancel
-          }
-        } else {
-          if (command === 'LEFT') {
-            uiState.settingsIndex = wrapIndex(uiState.settingsIndex - 1, SETTINGS_ITEMS.length);
-          } else if (command === 'RIGHT') {
-            uiState.settingsIndex = wrapIndex(uiState.settingsIndex + 1, SETTINGS_ITEMS.length);
-          } else if (command === 'ENTER') {
-            toggleSetting(SETTINGS_ITEMS[uiState.settingsIndex].id);
-          } else if (command === 'BACK') {
-            openScene('Home');
-          }
+        if (command === 'LEFT') {
+          uiState.settingsIndex = wrapIndex(uiState.settingsIndex - 1, SETTINGS_ITEMS.length);
+        } else if (command === 'RIGHT') {
+          uiState.settingsIndex = wrapIndex(uiState.settingsIndex + 1, SETTINGS_ITEMS.length);
+        } else if (command === 'ENTER') {
+          toggleSetting(['mute', 'speed', 'pause', 'reducedMotion'][uiState.settingsIndex]);
+        } else if (command === 'BACK') {
+          openScene('Home');
         }
         break;
       case 'Minigames':
@@ -340,9 +307,7 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
   const unbindInput = bindInput(handleCommand);
 
   const beforeUnload = () => {
-    if (!isResetting) {
-      saveState(petState);
-    }
+    saveState(petState);
   };
   window.addEventListener('beforeunload', beforeUnload);
 
@@ -356,93 +321,11 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
 }
 
 function loadState(): PetState {
-  // Support ?reset in URL to force-clear saved data
-  if (window.location.search.includes('reset')) {
-    console.log('[PomPom] Force reset via ?reset param — clearing save data');
-    localStorage.removeItem(STORAGE_KEY);
-    // Clean up the URL to prevent re-triggering on refresh
-    window.history.replaceState({}, '', window.location.pathname);
-    const fresh = createInitialPetState();
-    // Defensive coding: Force species to be FLAN_BEBE just in case
-    fresh.species = 'FLAN_BEBE';
-    console.log('[PomPom] Fresh state:', fresh.species, 'health:', fresh.stats.health, 'alive:', fresh.alive);
-    return fresh;
-  }
-
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
-    const fresh = createInitialPetState();
-    // Defensive coding: Force species to be FLAN_BEBE just in case
-    fresh.species = 'FLAN_BEBE';
-    console.log('[PomPom] No save found, starting fresh:', fresh.species, 'health:', fresh.stats.health);
-    return fresh;
+    return createInitialPetState();
   }
-  let loaded = deserializeFromJSON(raw);
-  console.log('[PomPom] Loaded save:', loaded.species, 'health:', loaded.stats.health, 'alive:', loaded.alive, 'ticks:', loaded.totalTicks);
-
-  // ── Welcome-back recovery ──
-  // When the player returns after being offline, apply a gentle recovery
-  // so the pet isn't permanently stuck in a sick/dying state.
-  loaded = applyWelcomeBackRecovery(loaded);
-
-  return loaded;
-}
-
-/**
- * Aplica recuperación de "bienvenida" al cargar el estado guardado.
- * Si la mascota estaba descuidada (hambre alta, salud baja), se recupera
- * parcialmente para que el jugador no la encuentre siempre enferma.
- * Simula que la mascota "descansó" mientras el jugador no estaba.
- */
-function applyWelcomeBackRecovery(state: PetState): PetState {
-  // Si la mascota murió por descuido, revivirla con stats bajos pero viables
-  if (!state.alive) {
-    console.log('[PomPom] Pet was dead — reviving with low but viable stats');
-    state = structuredClone(state);
-    state.alive = true;
-    state.stats.health = 100;
-    state.stats.hunger = 40;   // somewhat hungry but not critical
-    state.stats.happiness = 30;
-    state.stats.energy = 50;
-    return state;
-  }
-
-  const needsRecovery =
-    state.stats.health < 40 ||
-    state.stats.hunger > 70 ||
-    state.stats.happiness < 20;
-
-  if (!needsRecovery) {
-    return state;
-  }
-
-  console.log('[PomPom] Applying welcome-back recovery — pet was in bad shape');
-  state = structuredClone(state);
-
-  // Reduce hunger (the pet "rested" and digested while offline)
-  if (state.stats.hunger > 40) {
-    state.stats.hunger = Math.max(40, state.stats.hunger - 30);
-  }
-
-  // Recover health partially - bump to 50 to avoid immediate sick loop
-  if (state.stats.health < 50) {
-    state.stats.health = Math.min(100, Math.max(80, state.stats.health + 40));
-  }
-
-  // Bump happiness a bit
-  if (state.stats.happiness < 30) {
-    state.stats.happiness = Math.min(100, state.stats.happiness + 30);
-  }
-
-  // Recover energy
-  if (state.stats.energy < 30) {
-    state.stats.energy = Math.min(100, state.stats.energy + 30);
-  }
-
-  console.log('[PomPom] After recovery — health:', state.stats.health,
-    'hunger:', state.stats.hunger, 'happiness:', state.stats.happiness);
-
-  return state;
+  return deserializeFromJSON(raw);
 }
 
 function saveState(state: PetState): void {
