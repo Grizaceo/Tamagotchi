@@ -7,55 +7,36 @@ const KEY_MAP: Record<string, InputCommand> = {
   Escape: 'BACK',
 };
 
-/**
- * Binds keyboard + on-screen touch buttons to game commands.
- * Returns a cleanup function to unbind everything.
- */
 export function bindInput(onCommand: (command: InputCommand) => void): () => void {
-  // ── Keyboard ──
-  const keyHandler = (event: KeyboardEvent) => {
+  const handler = (event: KeyboardEvent) => {
     const command = KEY_MAP[event.code];
     if (!command) return;
     event.preventDefault();
     onCommand(command);
   };
-  window.addEventListener('keydown', keyHandler);
 
-  // ── Touch buttons ──
-  const buttons = document.querySelectorAll<HTMLButtonElement>('.ctrl-btn[data-cmd]');
-  const touchHandlers: Array<{ el: HTMLButtonElement; start: EventListener; end: EventListener }> = [];
+  window.addEventListener('keydown', handler);
+
+  const buttons = document.querySelectorAll<HTMLElement>('.ctrl-btn');
+  const btnHandler = (e: Event) => {
+    e.preventDefault();
+    const target = e.currentTarget as HTMLElement;
+    const cmd = target.getAttribute('data-cmd') as InputCommand;
+    if (cmd) {
+      target.classList.add('pressed');
+      setTimeout(() => target.classList.remove('pressed'), 100);
+      onCommand(cmd);
+    }
+  };
 
   buttons.forEach((btn) => {
-    const cmd = btn.dataset.cmd as InputCommand | undefined;
-    if (!cmd) return;
-
-    const fireCommand = () => {
-      btn.classList.add('pressed');
-      onCommand(cmd);
-    };
-
-    const releaseVisual = () => {
-      btn.classList.remove('pressed');
-    };
-
-    // Pointer events work for both touch and mouse
-    btn.addEventListener('pointerdown', fireCommand);
-    btn.addEventListener('pointerup', releaseVisual);
-    btn.addEventListener('pointerleave', releaseVisual);
-
+    btn.addEventListener('pointerdown', btnHandler);
     // Prevent context menu on long press
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
-
-    touchHandlers.push({ el: btn, start: fireCommand, end: releaseVisual });
   });
 
-  // ── Cleanup ──
   return () => {
-    window.removeEventListener('keydown', keyHandler);
-    touchHandlers.forEach(({ el, start, end }) => {
-      el.removeEventListener('pointerdown', start);
-      el.removeEventListener('pointerup', end);
-      el.removeEventListener('pointerleave', end);
-    });
+    window.removeEventListener('keydown', handler);
+    buttons.forEach((btn) => btn.removeEventListener('pointerdown', btnHandler));
   };
 }
