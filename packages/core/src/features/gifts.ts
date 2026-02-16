@@ -65,6 +65,12 @@ export const GIFT_CATALOG: Gift[] = [
     description: 'Un regalo misterioso y único',
     emoji: '🎁',
   },
+  {
+    id: 'gift_judge_evolution',
+    name: 'Justicia Pompom',
+    description: 'La ley del más tierno (Evolución Perfecta)',
+    emoji: '⚖️',
+  },
 ];
 
 /**
@@ -142,6 +148,13 @@ export const GIFT_UNLOCK_CONDITIONS: GiftUnlockCondition[] = [
     description: 'Lleva al pet a forma adulta con salud > 70',
     checkFn: (state) =>
       (state.species === 'FLAN_ADULT' || isEvolved(state)) && state.stats.health > 70,
+  },
+
+  {
+    giftId: 'gift_judge_evolution',
+    description: 'Evoluciona a Pompompurin (Evolución Perfecta)',
+    checkFn: (state, context) =>
+      state.species === 'POMPOMPURIN' || context.evolvedTo.has('POMPOMPURIN'),
   },
 ];
 

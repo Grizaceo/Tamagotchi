@@ -79,7 +79,7 @@ function drawScene(
       drawCareMenu(ctx, ui, body);
       break;
     case 'Gifts':
-      drawGifts(ctx, state, ui, body, options?.spriteRenderer);
+      drawGifts(ctx, state, ui, body, options?.spriteRenderer, options?.assetManager);
       break;
     case 'Album':
       drawAlbum(ctx, state, ui, body);
@@ -366,7 +366,8 @@ function drawGifts(
   state: PetState,
   ui: UiState,
   area: Rect,
-  spriteRenderer?: SpriteRenderer
+  spriteRenderer?: SpriteRenderer,
+  assetManager?: AssetManager
 ): void {
   const gifts = state.unlockedGifts;
   ctx.fillStyle = PALETTE.inkSoft;
@@ -397,6 +398,25 @@ function drawGifts(
   ctx.fillText(gift.name.toUpperCase(), detailArea.x, detailArea.y);
   ctx.fillStyle = PALETTE.ink;
   wrapText(ctx, gift.description, detailArea.x, detailArea.y + 16, detailArea.w, 12);
+
+  // Special rendering for Judge Pompom
+  if (gift.id === 'gift_judge_evolution' && assetManager) {
+    const img = assetManager.get('gift_judge');
+    if (img) {
+      const spriteSize = 64;
+      const spriteX = detailArea.x + (detailArea.w - spriteSize) / 2;
+      const spriteY = detailArea.y + detailArea.h - spriteSize;
+
+      // Draw background circle
+      ctx.fillStyle = PALETTE.screenShade;
+      ctx.beginPath();
+      ctx.arc(spriteX + spriteSize / 2, spriteY + spriteSize / 2, spriteSize / 2 - 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.drawImage(img, spriteX, spriteY, spriteSize, spriteSize);
+      return;
+    }
+  }
 
   // Show Pet Reaction (Happy Sprite) below description if there is space
   if (spriteRenderer) {

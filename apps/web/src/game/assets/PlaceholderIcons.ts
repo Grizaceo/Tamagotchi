@@ -18,8 +18,9 @@ export const ICON_MAP = {
     menu_discipline: 'https://picsum.photos/id/190/64/64', // Architecture (Strict?)
     menu_gift: 'https://picsum.photos/id/65/64/64',      // Girl (Gift?) 
     menu_album: 'https://picsum.photos/id/22/64/64',     // Walk alone (Album?)
-    menu_settings: 'https://picsum.photos/id/486/64/64', // Rock
+    menu_settings: '/assets/ui/menu_settings.png', // Gear icon
     menu_minigames: 'https://picsum.photos/id/96/64/64', // Abstract (Game?)
+    gift_judge: '/assets/ui/gift_judge.png', // Judge Pompom
 
     // Labels
     label_hunger: '/assets/ui/labels/label_hunger.png',
