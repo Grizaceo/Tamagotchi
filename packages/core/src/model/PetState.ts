@@ -31,6 +31,7 @@ export interface PetState {
 }
 
 export function createInitialPetState(): PetState {
+  console.log('[PomPom Core] createInitialPetState called - Defaulting to FLAN_BEBE');
   return {
     species: 'FLAN_BEBE',
     stats: {

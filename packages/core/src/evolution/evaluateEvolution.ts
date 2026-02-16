@@ -11,6 +11,7 @@ export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined
   if (state.species === 'FLAN_BEBE') {
     // 1 minuto (60 ticks) para pasar a TEEN
     if (state.totalTicks >= 60) {
+      console.log(`[PomPom Debug] Evolving FLAN_BEBE -> FLAN_TEEN (ticks=${state.totalTicks})`);
       return 'FLAN_TEEN';
     }
     return undefined;
@@ -19,6 +20,7 @@ export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined
   if (state.species === 'FLAN_TEEN') {
     // 5 minutos (300 ticks) para pasar a ADULT
     if (state.totalTicks >= 300) {
+      console.log(`[PomPom Debug] Evolving FLAN_TEEN -> FLAN_ADULT (ticks=${state.totalTicks})`);
       return 'FLAN_ADULT';
     }
     return undefined;
@@ -35,6 +37,7 @@ export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined
 
   for (const rule of rules) {
     if (checkConditions(state, rule.conditions, historyStats)) {
+      console.log(`[PomPom Debug] Evolving FLAN_ADULT -> ${rule.targetSpecies} (Rule=${rule.name})`);
       return rule.targetSpecies;
     }
   }

@@ -10,8 +10,12 @@ const stop = startGameLoop(canvas);
 
 // ── PWA: register service worker ──
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {
-    // SW registration failed — app still works, just no offline support
+  // FORCE UNREGISTER for debugging
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (let registration of registrations) {
+      console.log('[PomPom] Unregistering SW:', registration);
+      registration.unregister();
+    }
   });
 }
 

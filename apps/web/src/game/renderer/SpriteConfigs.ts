@@ -149,38 +149,38 @@ const FLAN_BEBE_ANIMATIONS_V2: Record<AnimationState, AnimationDef> = {
 
 export const SPRITE_CONFIGS: Record<string, SpriteConfig> = {
     'FLAN_BEBE': {
-        src: '/assets/flan_bebe_40px.png',
+        src: '/assets/sprites/flan_bebe.png',
         gridSize: 40,
         animations: FLAN_BEBE_ANIMATIONS_V3,
     },
     'FLAN_TEEN': {
         // Placeholder: use baby sprite clean
-        src: '/assets/flan_bebe_40px.png',
+        src: '/assets/sprites/flan_bebe.png',
         gridSize: 40,
         animations: FLAN_BEBE_ANIMATIONS_V3,
     },
     'FLAN_ADULT': {
-        src: '/assets/tamagotchi_spritesheet_1768544718465.png',
+        src: '/assets/sprites/pompompurin.png',
         gridSize: 256,
         animations: POMPOM_ANIMATIONS,
     },
     'POMPOMPURIN': {
-        src: '/assets/tamagotchi_spritesheet_1768544718465.png',
+        src: '/assets/sprites/pompompurin.png',
         gridSize: 256,
         animations: POMPOM_ANIMATIONS,
     },
     'MUFFIN': {
-        src: '/assets/muffin_spritesheet_1768545516744.png',
+        src: '/assets/sprites/muffin.png',
         gridSize: 256,
         animations: COMMON_ANIMATIONS_GRID,
     },
     'BAGEL': {
-        src: '/assets/bagel_spritesheet_1768545538660.png',
+        src: '/assets/sprites/bagel.png',
         gridSize: 256,
         animations: COMMON_ANIMATIONS_GRID,
     },
     'SCONE': {
-        src: '/assets/scone_spritesheet_1768545626414.png',
+        src: '/assets/sprites/scone.png',
         gridSize: 256,
         animations: COMMON_ANIMATIONS_GRID,
     },

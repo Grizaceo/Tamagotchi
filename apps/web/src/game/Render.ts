@@ -2,7 +2,7 @@ import type { PetState } from '@pompom/core';
 import { getGiftById } from '@pompom/core';
 import { ALBUM_PAGE_SIZE, CARE_ACTIONS, MINIGAMES, SETTINGS_ITEMS } from './Scenes';
 import type { UiState } from './Scenes';
-import type { SpriteRenderer } from './renderer/SpriteRenderer';
+import type { AnimationState, SpriteRenderer, AssetManager } from './renderer/SpriteRenderer';
 import type { UIRenderer } from './renderer/UIRenderer';
 
 const PALETTE = {
@@ -79,7 +79,7 @@ function drawScene(
       drawCareMenu(ctx, ui, body);
       break;
     case 'Gifts':
-      drawGifts(ctx, state, ui, body);
+      drawGifts(ctx, state, ui, body, options?.spriteRenderer);
       break;
     case 'Album':
       drawAlbum(ctx, state, ui, body);
@@ -104,6 +104,10 @@ function drawHeader(ctx: CanvasRenderingContext2D, title: string, area: Rect): v
   ctx.fillText(title.toUpperCase(), area.x + 6, area.y + area.h / 2);
 }
 
+
+// ... (imports remain)
+
+// ... (drawHome function)
 function drawHome(
   ctx: CanvasRenderingContext2D,
   state: PetState,
@@ -111,24 +115,48 @@ function drawHome(
   _now: number,
   options?: RenderOptions
 ): void {
-  drawStats(ctx, state, { x: area.x, y: area.y, w: area.w, h: 24 });
+  // Compact stats height
+  const statsHeight = 32;
+  drawStats(ctx, state, { x: area.x, y: area.y, w: area.w, h: statsHeight }, options?.spriteRenderer, options?.assetManager);
 
   if (options?.spriteRenderer) {
-    // Fill behind the sprite to cover the JPEG's baked-in checkered background
+    // Fill behind the sprite
     const sr = options.spriteRenderer;
-    ctx.fillStyle = PALETTE.screen;
+    // We assume sprite position is handled in GameLoop or here.
+    // Let's verify overlap visual:
+    // Stats end at y + 32. 
+    // Sprite usually starts lower.
+
+    // Debug helper: draw sprite box
+    // ctx.strokeStyle = 'red';
+    // ctx.strokeRect(sr.x, sr.y, sr.displaySize, sr.displaySize);
+
     ctx.fillRect(sr.x, sr.y, sr.displaySize, sr.displaySize);
     sr.draw(ctx);
   } else {
     // Fallback: draw a simple placeholder pet
-    drawFallbackPet(ctx, state, { x: area.x, y: area.y + 28, w: area.w, h: area.h - 40 });
+    drawFallbackPet(ctx, state, { x: area.x, y: area.y + statsHeight + 8, w: area.w, h: area.h - statsHeight - 20 });
   }
 
-  ctx.fillStyle = PALETTE.inkSoft;
-  ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
-  ctx.textBaseline = 'alphabetic';
-  const infoLine = `SPD ${state.settings.speed}  ${state.settings.paused ? 'PAUSE' : 'RUN'}`;
-  ctx.fillText(infoLine, area.x + 4, area.y + area.h - 4);
+  // Draw Game Over overlay if dead
+  if (!state.alive) {
+    drawGameOver(ctx, area);
+  }
+}
+
+function drawGameOver(ctx: CanvasRenderingContext2D, area: Rect) {
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(area.x, area.y, area.w, area.h);
+
+  ctx.fillStyle = PALETTE.accent;
+  ctx.font = '20px "Cascadia Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText("GAME OVER", area.x + area.w / 2, area.y + area.h / 2);
+
+  ctx.fillStyle = PALETTE.screen;
+  ctx.font = '10px "Cascadia Mono", monospace';
+  ctx.fillText("Use Settings -> Reset", area.x + area.w / 2, area.y + area.h / 2 + 15);
+  ctx.textAlign = 'left';
 }
 
 function drawFallbackPet(
@@ -174,54 +202,139 @@ function drawFallbackPet(
   ctx.textAlign = 'start';
 }
 
-
-
 // Reuse objects to avoid allocation in render loop
-const STATS_POOL = [
-  { label: 'H', value: 0 },
-  { label: 'P', value: 0 },
-  { label: 'E', value: 0 },
-  { label: 'S', value: 0 },
+const STATS_POOL: { label: string; value: number; icon: AnimationState }[] = [
+  { label: 'HUNGER', value: 0, icon: 'eat' },
+  { label: 'HAPPY', value: 0, icon: 'happy' },
+  { label: 'ENERGY', value: 0, icon: 'sleep' },
+  { label: 'HEALTH', value: 0, icon: 'sick' },
+  { label: 'LOVE', value: 0, icon: 'idle' },
 ];
 
-function drawStats(ctx: CanvasRenderingContext2D, state: PetState, area: Rect): void {
-  STATS_POOL[0].value = 100 - state.stats.hunger; // Invert: full bar = well fed
+function drawStats(
+  ctx: CanvasRenderingContext2D,
+  state: PetState,
+  area: Rect,
+  spriteRenderer?: SpriteRenderer,
+  assetManager?: AssetManager
+): void {
+  STATS_POOL[0].value = 100 - state.stats.hunger; // Invert
   STATS_POOL[1].value = state.stats.happiness;
   STATS_POOL[2].value = state.stats.energy;
   STATS_POOL[3].value = state.stats.health;
+  STATS_POOL[4].value = state.stats.affection;
 
-  const barWidth = Math.floor(area.w / STATS_POOL.length) - 4;
-  const barHeight = 10;
+  // Compact Top Layout: 1 row of 5 items
+  // ITEM: [ICON] [BAR___]
+  const paddingX = 4;
+  const itemWidth = (area.w - (paddingX * 6)) / 5;
+  const startX = area.x + paddingX;
+  const startY = area.y + 4;
 
-  for (let i = 0; i < STATS_POOL.length; i++) {
-    const stat = STATS_POOL[i];
-    const x = area.x + i * (barWidth + 4);
-    const y = area.y + 8;
-    drawStatBar(ctx, x, y, barWidth, barHeight, stat.value, stat.label);
-  }
+  // Draw labels above or inside? 
+  // Let's do icon + mini bar below it.
+
+  STATS_POOL.forEach((stat, i) => {
+    const x = startX + i * (itemWidth + paddingX);
+    const y = startY;
+
+    drawCompactStat(ctx, x, y, itemWidth, stat, spriteRenderer, assetManager);
+  });
 }
 
-function drawStatBar(
+function drawCompactStat(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   w: number,
-  h: number,
-  value: number,
-  label: string
-): void {
-  ctx.fillStyle = PALETTE.inkSoft;
-  ctx.fillRect(x, y, w, h);
+  stat: { label: string; value: number; icon: AnimationState },
+  spriteRenderer?: SpriteRenderer,
+  assetManager?: AssetManager
+) {
+  const iconSize = 12;
+  const centerX = x + w / 2;
 
-  const fillWidth = Math.max(0, Math.min(1, value / 100)) * (w - 2);
-  ctx.fillStyle = PALETTE.accent;
-  ctx.fillRect(x + 1, y + 1, fillWidth, h - 2);
+  // 1. Icon
+  // Try to use placeholder first
+  let drawn = false;
+  if (assetManager) {
+    const iconMap: Record<string, string> = {
+      'eat': 'icon_hunger',
+      'happy': 'icon_happy',
+      'sleep': 'icon_energy',
+      'sick': 'icon_health',
+      'idle': 'icon_love',
+    };
+    const key = iconMap[stat.icon];
+    const img = assetManager.get(key);
+    if (img) {
+      ctx.drawImage(img, centerX - iconSize / 2, y, iconSize, iconSize);
+      drawn = true;
+    }
+  }
 
-  ctx.fillStyle = PALETTE.screen;
-  ctx.font = '8px "Cascadia Mono", "Courier New", monospace';
-  ctx.textBaseline = 'top';
-  ctx.fillText(label, x + 2, y - 7);
+  if (!drawn && spriteRenderer) {
+    spriteRenderer.drawFrame(ctx, stat.icon, 0, centerX - iconSize / 2, y, iconSize);
+  } else if (!drawn) {
+    ctx.fillStyle = PALETTE.inkSoft;
+    ctx.beginPath();
+    ctx.arc(centerX, y + iconSize / 2, iconSize / 2 - 1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 2. Bar (below icon)
+  const barH = 4;
+  const barY = y + iconSize + 2;
+
+  ctx.fillStyle = PALETTE.inkSoft; // bg
+  ctx.fillRect(x, barY, w, barH);
+
+  const fillW = Math.max(0, Math.min(1, stat.value / 100)) * (w - 2);
+  ctx.fillStyle = stat.value < 30 ? '#FF5252' : PALETTE.accent; // Red if low
+  ctx.fillRect(x + 1, barY + 1, fillW, barH - 2);
+
+  // 3. Label (tiny, below bar)
+  // Try to use label sprite
+  let labelDrawn = false;
+  if (assetManager) {
+    const labelMap: Record<string, string> = {
+      'HUNGER': 'label_hunger',
+      'HAPPY': 'label_happy',
+      'ENERGY': 'label_energy',
+      'HEALTH': 'label_health',
+      'LOVE': 'label_love',
+    };
+    const key = labelMap[stat.label];
+    const img = assetManager.get(key);
+    if (img) {
+      // Center label
+      // Sprite is variable width, height ~7px * scale 2 = 14px
+      // let's draw it at scale 1 or 2? Generated as scale 2 (14px height).
+      // That might be too big for "tiny" label.
+      // Generated script said: "Resize to be slightly larger... Target height around 12-16px"
+      // Original text font was 6px.
+      // Let's draw it centered.
+      const drawW = img.width;
+      const drawH = img.height;
+
+      // If it's too wide, scale down?
+      // w is area width.
+
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, centerX - drawW / 2, barY + barH + 2, drawW, drawH);
+      labelDrawn = true;
+    }
+  }
+
+  if (!labelDrawn) {
+    ctx.fillStyle = PALETTE.inkSoft;
+    ctx.font = '6px "Cascadia Mono", "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(stat.label.substring(0, 3), centerX, barY + barH + 6);
+    ctx.textAlign = 'left';
+  }
 }
+
 
 
 
@@ -248,7 +361,13 @@ function drawCareMenu(ctx: CanvasRenderingContext2D, ui: UiState, area: Rect): v
   ctx.textAlign = 'start';
 }
 
-function drawGifts(ctx: CanvasRenderingContext2D, state: PetState, ui: UiState, area: Rect): void {
+function drawGifts(
+  ctx: CanvasRenderingContext2D,
+  state: PetState,
+  ui: UiState,
+  area: Rect,
+  spriteRenderer?: SpriteRenderer
+): void {
   const gifts = state.unlockedGifts;
   ctx.fillStyle = PALETTE.inkSoft;
   ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
@@ -273,10 +392,34 @@ function drawGifts(ctx: CanvasRenderingContext2D, state: PetState, ui: UiState, 
   const gift = getGiftById(gifts[ui.giftIndex]);
   if (!gift) return;
 
+  // Text details
   ctx.fillStyle = PALETTE.inkSoft;
   ctx.fillText(gift.name.toUpperCase(), detailArea.x, detailArea.y);
   ctx.fillStyle = PALETTE.ink;
   wrapText(ctx, gift.description, detailArea.x, detailArea.y + 16, detailArea.w, 12);
+
+  // Show Pet Reaction (Happy Sprite) below description if there is space
+  if (spriteRenderer) {
+    const spriteSize = 64;
+    const spriteX = detailArea.x + (detailArea.w - spriteSize) / 2;
+    const spriteY = detailArea.y + detailArea.h - spriteSize;
+
+    // Draw background circle for the sprite
+    ctx.fillStyle = PALETTE.screenShade;
+    ctx.beginPath();
+    ctx.arc(spriteX + spriteSize / 2, spriteY + spriteSize / 2, spriteSize / 2 - 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Force draw 'happy' animation frame 0 (or animated if we could update it, but static is fine for UI)
+    // Actually spriteRenderer.drawFrame handles static frame drawing.
+    // Use animation 'happy', frame 0 (or maybe toggle frames based on global time?)
+    // Let's use frame 0 for simplicity.
+
+    const time = Date.now() / 250; // Simple animation loop for UI
+    const frame = Math.floor(time) % 2;
+
+    spriteRenderer.drawFrame(ctx, 'happy', frame, spriteX, spriteY, spriteSize);
+  }
 }
 
 function drawAlbum(ctx: CanvasRenderingContext2D, state: PetState, ui: UiState, area: Rect): void {
@@ -320,6 +463,27 @@ function drawSettings(ctx: CanvasRenderingContext2D, state: PetState, ui: UiStat
     ctx.fillStyle = PALETTE.ink;
     ctx.fillText(value, area.x + area.w * 0.6, y);
   });
+
+  if (ui.settingsConfirmation) {
+    // Draw overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(area.x, area.y, area.w, area.h);
+
+    ctx.fillStyle = PALETTE.screen;
+    ctx.fillRect(area.x + 10, area.y + 20, area.w - 20, 60);
+    ctx.strokeRect(area.x + 10, area.y + 20, area.w - 20, 60);
+
+    ctx.fillStyle = PALETTE.ink;
+    ctx.textAlign = 'center';
+    ctx.fillText('REALLY RESET?', area.x + area.w / 2, area.y + 35);
+    ctx.fillText('All data will be lost!', area.x + area.w / 2, area.y + 45);
+
+    ctx.fillStyle = PALETTE.accent;
+    ctx.fillText('ENTER: Confirm', area.x + area.w / 2, area.y + 60);
+    ctx.fillStyle = PALETTE.inkSoft;
+    ctx.fillText('BACK: Cancel', area.x + area.w / 2, area.y + 70);
+    ctx.textAlign = 'left';
+  }
 }
 
 function getSettingValue(id: string, state: PetState): string {
@@ -332,6 +496,8 @@ function getSettingValue(id: string, state: PetState): string {
       return state.settings.paused ? 'ON' : 'OFF';
     case 'reducedMotion':
       return state.settings.reducedMotion ? 'ON' : 'OFF';
+    case 'reset':
+      return '>>>';
     default:
       return '';
   }
@@ -406,4 +572,5 @@ export type RenderOptions = {
   minigameFrame?: HTMLCanvasElement | null;
   spriteRenderer?: SpriteRenderer;
   uiRenderer?: UIRenderer;
+  assetManager?: AssetManager;
 };

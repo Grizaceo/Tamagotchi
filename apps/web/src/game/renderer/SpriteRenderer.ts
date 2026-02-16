@@ -1,4 +1,4 @@
-export type AnimationState = 'idle' | 'walk' | 'eat' | 'happy' | 'sad' | 'sick' | 'sleep' | 'evolve';
+export type AnimationState = 'idle' | 'walk' | 'eat' | 'happy' | 'sad' | 'sick' | 'sleep' | 'evolve' | 'dead';
 
 /** Explicit source rectangle for one frame inside a sprite sheet. */
 export interface FrameRect {
@@ -115,15 +115,50 @@ export class SpriteRenderer {
             return;
         }
 
+        this.drawFrameInternal(ctx, img, animConfig, this.frameIndex, this.x, this.y, this.displaySize, this.flipX);
+    }
+
+    /**
+     * Draw a specific frame of an animation at a given position/size.
+     * Useful for UI icons (e.g. stat bars).
+     */
+    drawFrame(
+        ctx: CanvasRenderingContext2D,
+        anim: AnimationState,
+        frameIndex: number,
+        x: number,
+        y: number,
+        size: number,
+        flipX: boolean = false
+    ) {
+        const img = this.assetManager.get(this._assetKey);
+        const animConfig = this.config.animations[anim];
+        if (!img || !animConfig) return;
+
+        // Clamp frame index
+        const actualFrame = Math.max(0, Math.min(frameIndex, animConfig.frames - 1));
+        this.drawFrameInternal(ctx, img, animConfig, actualFrame, x, y, size, flipX);
+    }
+
+    private drawFrameInternal(
+        ctx: CanvasRenderingContext2D,
+        img: HTMLImageElement,
+        animConfig: AnimationDef,
+        frameIndex: number,
+        x: number,
+        y: number,
+        displaySize: number,
+        flipX: boolean
+    ) {
         // Determine source rectangle
         let srcX: number;
         let srcY: number;
         let srcW: number;
         let srcH: number;
 
-        if (animConfig.frameRects && animConfig.frameRects[this.frameIndex]) {
+        if (animConfig.frameRects && animConfig.frameRects[frameIndex]) {
             // Explicit per-frame rect — highest priority
-            const rect = animConfig.frameRects[this.frameIndex];
+            const rect = animConfig.frameRects[frameIndex];
             srcX = rect.x;
             srcY = rect.y;
             srcW = rect.w;
@@ -133,10 +168,15 @@ export class SpriteRenderer {
             const colW = this.config.gridSize;
             const rowH = this.config.rowHeight ?? this.config.gridSize;
             const startCol = animConfig.col ?? 0;
-            srcX = (startCol + this.frameIndex) * colW;
+            srcX = (startCol + frameIndex) * colW;
             srcY = animConfig.row * rowH;
             srcW = colW;
             srcH = rowH;
+
+            // Debug log once per second-ish to avoid spam, or checking specific condition
+            if (Math.random() < 0.01) {
+                console.log(`[SpriteRenderer Debug] asset=${this._assetKey} frame=${frameIndex} gridSize=${colW} srcRect=[${srcX}, ${srcY}, ${srcW}, ${srcH}] imgSize=[${img.width}, ${img.height}]`);
+            }
         }
 
         // Calculate display size maintaining aspect ratio
@@ -144,28 +184,29 @@ export class SpriteRenderer {
         let drawW: number;
         let drawH: number;
         if (aspect >= 1) {
-            drawW = this.displaySize;
-            drawH = this.displaySize / aspect;
+            drawW = displaySize;
+            drawH = displaySize / aspect;
         } else {
-            drawH = this.displaySize;
-            drawW = this.displaySize * aspect;
+            drawH = displaySize;
+            drawW = displaySize * aspect;
         }
         // Center within the displaySize box
-        const offsetX = (this.displaySize - drawW) / 2;
-        const offsetY = (this.displaySize - drawH) / 2;
+        const offsetX = (displaySize - drawW) / 2;
+        const offsetY = (displaySize - drawH) / 2;
 
         ctx.save();
         ctx.imageSmoothingEnabled = false;
 
-        if (this.flipX) {
-            ctx.translate(this.x + this.displaySize, this.y);
+        if (flipX) {
+            ctx.translate(x + displaySize, y);
             ctx.scale(-1, 1);
             ctx.drawImage(img, srcX, srcY, srcW, srcH, offsetX, offsetY, drawW, drawH);
         } else {
-            ctx.translate(this.x, this.y);
+            ctx.translate(x, y);
             ctx.drawImage(img, srcX, srcY, srcW, srcH, offsetX, offsetY, drawW, drawH);
         }
 
         ctx.restore();
     }
 }
+

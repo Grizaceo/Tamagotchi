@@ -17,7 +17,10 @@ export function reduce(state: PetState, action: Action): PetState {
 
   // Primero aplica un tick (el tiempo siempre avanza)
   // Usamos mutate=true porque ya clonamos el estado arriba
+  // Debug log before tick
+  // console.log('[Reducer] Pre-tick:', newState.stats.health);
   newState = tick(newState, 1, true);
+  // console.log('[Reducer] Post-tick:', newState.stats.health);
 
   if (!newState.alive) {
     return newState;
@@ -108,6 +111,11 @@ function applyMedicate(state: PetState, action: Action): PetState {
 
   // Aumenta salud significativamente
   state.stats.health = clampStat(state.stats.health + 40);
+
+  // Si hay mucho afecto, curar también pone feliz
+  if (state.stats.affection > 70) {
+    state.stats.happiness = clampStat(state.stats.happiness + 20);
+  }
 
   state.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {

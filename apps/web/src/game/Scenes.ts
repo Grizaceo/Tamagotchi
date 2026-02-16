@@ -12,12 +12,13 @@ export interface UiState {
   albumIndex: number;
   albumPage: number;
   settingsIndex: number;
+  settingsConfirmation: boolean;
   minigameIndex: number;
   minigameMode: MinigameMode;
 }
 
 export const BOTTOM_MENU: Array<{ id: SceneId; label: string; icon: string }> = [
-  { id: 'Home', label: 'Home', icon: 'HM' },
+  // Home removed as redundant
   { id: 'CareMenu', label: 'Care', icon: 'CR' },
   { id: 'Gifts', label: 'Gifts', icon: 'GF' },
   { id: 'Album', label: 'Album', icon: 'AL' },
@@ -38,6 +39,7 @@ export const SETTINGS_ITEMS = [
   { id: 'speed', label: 'Speed' },
   { id: 'pause', label: 'Pause' },
   { id: 'reducedMotion', label: 'ReducedMotion' },
+  { id: 'reset', label: 'Reset Game' },
 ];
 
 export const ALBUM_PAGE_SIZE = 4;
@@ -56,6 +58,7 @@ export function createInitialUiState(): UiState {
     albumIndex: 0,
     albumPage: 0,
     settingsIndex: 0,
+    settingsConfirmation: false,
     minigameIndex: 0,
     minigameMode: 'select',
   };

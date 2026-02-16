@@ -7,7 +7,7 @@ import type { PetState } from '@pompom/core';
  * Sprite strip order: 0:Food, 1:Light, 2:Play, 3:Medicine, 4:Toilet, 5:Stats, 6:Discipline, 7:Gift, 8:Album
  */
 const MENU_ICONS: { label: string; srcIndex: number }[] = [
-    { label: 'home', srcIndex: 5 }, // Home  → Stats icon
+    // Home removed
     { label: 'care', srcIndex: 0 }, // Care  → Food icon
     { label: 'gifts', srcIndex: 7 }, // Gifts → Gift icon
     { label: 'album', srcIndex: 8 }, // Album → Album icon
@@ -17,7 +17,7 @@ const MENU_ICONS: { label: string; srcIndex: number }[] = [
 
 export class UIRenderer {
     private assetManager: AssetManager;
-    private iconSrc: string = '/assets/ui_icons_strip.png';
+    private iconSrc: string = '/assets/ui/icons.png';
 
     private selectedIconIndex: number = -1; // -1 means no menu selection active
 
@@ -59,22 +59,64 @@ export class UIRenderer {
     }
 
     private drawFooter(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
-        const iconSize = 24;
         const displaySize = 24;
-        const padding = 8;
+        const padding = 20; // Increase padding for text
         const count = MENU_ICONS.length;
-        const startX = (320 - (count * (displaySize + padding))) / 2;
-        const y = 240 - 30;
+        const totalWidth = count * displaySize + (count - 1) * padding;
+        const startX = (320 - totalWidth) / 2;
+        const y = 240 - 32; // Move up slightly to fit text
+
+        // Grid assumption for retro icons: 1024x1024, ~256px grid
+        const cols = 4;
+        const gridSize = 256;
+
+        const iconMap: Record<string, string> = {
+            'care': 'menu_food',
+            'gifts': 'menu_gift',
+            'album': 'menu_album',
+            'settings': 'menu_settings',
+            'games': 'menu_minigames',
+        };
 
         MENU_ICONS.forEach((icon, index) => {
             const x = startX + index * (displaySize + padding);
 
+            // Selection Highlight
             if (index === this.selectedIconIndex) {
                 ctx.fillStyle = '#FFD94A';
                 ctx.fillRect(x - 2, y - 2, displaySize + 4, displaySize + 4);
             }
 
-            ctx.drawImage(img, icon.srcIndex * iconSize, 0, iconSize, iconSize, x, y, displaySize, displaySize);
+            // Draw Icon
+            // Try placeholder first
+            let drawn = false;
+            const placeholderKey = iconMap[icon.label];
+            if (placeholderKey) {
+                const pImg = this.assetManager.get(placeholderKey);
+                if (pImg) {
+                    ctx.drawImage(pImg, x, y, displaySize, displaySize);
+                    drawn = true;
+                }
+            }
+
+            if (!drawn) {
+                const srcCol = icon.srcIndex % cols;
+                const srcRow = Math.floor(icon.srcIndex / cols);
+                const srcX = srcCol * gridSize;
+                const srcY = srcRow * gridSize;
+
+                ctx.drawImage(img, srcX, srcY, gridSize, gridSize, x, y, displaySize, displaySize);
+            }
+
+            // Draw Label
+            ctx.fillStyle = '#202020'; // use PALETTE.inkSoft? Hardcoded for now to match file style
+            ctx.font = '8px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            // Shorten longer labels if needed
+            const label = icon.label.toUpperCase().substring(0, 6);
+            ctx.fillText(label, x + displaySize / 2, y + displaySize + 2);
         });
+        ctx.textAlign = 'left'; // Reset
     }
 }
