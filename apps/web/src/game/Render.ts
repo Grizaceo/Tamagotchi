@@ -1,6 +1,13 @@
 import type { PetState } from '@pompom/core';
 import { getGiftById } from '@pompom/core';
-import { ALBUM_PAGE_SIZE, CARE_ACTIONS, MINIGAMES, SETTINGS_ITEMS } from './Scenes';
+import {
+  ALBUM_PAGE_SIZE,
+  CARE_ACTIONS,
+  MINIGAMES,
+  SETTINGS_ITEMS,
+  getMenuIndex,
+  mapMenuIndexToIcon,
+} from './Scenes';
 import type { UiState } from './Scenes';
 
 const PALETTE = {
@@ -33,8 +40,8 @@ export function renderFrame(
   // 1. Draw UI (Header/Footer/Icons)
   if (options?.uiRenderer) {
     // Map UI state to renderer selection
-    let selection = -1;
-    if (ui.scene === 'Home') selection = ui.menuIndex; // TODO: Map menuIndex to icon index accurately
+    const activeIndex = ui.scene === 'Home' ? ui.menuIndex : getMenuIndex(ui.scene);
+    const selection = mapMenuIndexToIcon(activeIndex, state);
     options.uiRenderer.setSelectedIcon(selection);
     options.uiRenderer.draw(ctx, state);
   }

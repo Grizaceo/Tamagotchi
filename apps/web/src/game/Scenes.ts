@@ -1,4 +1,4 @@
-import type { ActionType } from '@pompom/core';
+import type { ActionType, PetState } from '@pompom/core';
 
 export type SceneId = 'Home' | 'CareMenu' | 'Gifts' | 'Album' | 'Settings' | 'Minigames';
 
@@ -71,4 +71,28 @@ export function wrapIndex(next: number, size: number): number {
 export function getMenuIndex(scene: SceneId): number {
   const idx = BOTTOM_MENU.findIndex((item) => item.id === scene);
   return idx === -1 ? 0 : idx;
+}
+
+/**
+ * Maps a menu index (from BOTTOM_MENU) to an icon index (from UIRenderer ICONS)
+ * ICONS: 0:food, 1:light, 2:play, 3:medicine, 4:toilet, 5:stats, 6:discipline, 7:gift, 8:album
+ */
+export function mapMenuIndexToIcon(menuIndex: number, state: PetState): number {
+  const sceneId = BOTTOM_MENU[menuIndex]?.id;
+  switch (sceneId) {
+    case 'Home':
+      return 5; // Stats
+    case 'CareMenu':
+      return state.stats.health < 30 ? 3 : 0; // Medicine if sick, else Food
+    case 'Gifts':
+      return 7; // Gift
+    case 'Album':
+      return 8; // Album
+    case 'Settings':
+      return 6; // Discipline (Setup)
+    case 'Minigames':
+      return 2; // Play
+    default:
+      return -1;
+  }
 }
