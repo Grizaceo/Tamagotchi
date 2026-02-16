@@ -27,6 +27,7 @@ export function reduce(state: PetState, action: Action): PetState {
   }
 
   // Luego aplica el efecto de la acción
+  const initialHistoryLength = newState.history.length;
   switch (action.type) {
     case 'FEED':
       newState = applyFeed(newState, action);
@@ -48,7 +49,25 @@ export function reduce(state: PetState, action: Action): PetState {
       break;
   }
 
+  // Only update stats if an event was actually recorded (action successful)
+  if (newState.history.length > initialHistoryLength) {
+    if (['FEED', 'PLAY', 'REST', 'MEDICATE', 'PET'].includes(action.type)) {
+      updateHistoryStats(newState, action.type);
+    }
+  }
+
+  // Prevent history from growing indefinitely (DoS protection)
+  if (newState.history.length > 2000) {
+    // Keep the last 2000 events
+    newState.history = newState.history.slice(-2000);
+  }
+
   return newState;
+}
+
+function updateHistoryStats(state: PetState, actionType: string) {
+  state.historyStats.actionCounts[actionType] = (state.historyStats.actionCounts[actionType] || 0) + 1;
+  state.historyStats.totalActions++;
 }
 
 function applyFeed(state: PetState, action: Action): PetState {

@@ -32,6 +32,11 @@ export interface SaveData {
     tick: number;
     data?: Record<string, unknown>;
   }>;
+  historyStats?: {
+    actionCounts: Record<string, number>;
+    totalActions: number;
+    evolvedForms: string[];
+  };
   unlockedGifts: string[];
   unlockedAchievements: string[];
   album: Record<string, unknown>;

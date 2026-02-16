@@ -1,4 +1,5 @@
-import type { PetState } from '../model/PetState';
+import type { PetState, HistoryStats } from '../model/PetState';
+import type { GameEvent } from '../model/Events';
 import type { SaveData } from '../model/SaveData';
 import { SAVE_DATA_VERSION } from '../model/SaveData';
 import { createInitialPetState } from '../model/PetState';
@@ -32,6 +33,7 @@ export function serialize(state: PetState): SaveData {
       tick: event.timestamp,
       data: event.data as Record<string, unknown> | undefined,
     })),
+    historyStats: state.historyStats,
     unlockedGifts: state.unlockedGifts,
     unlockedAchievements: state.unlockedAchievements,
     album: state.album,
@@ -65,6 +67,12 @@ export function deserialize(data: SaveData): PetState {
     return createInitialPetState();
   }
 
+  const historyEvents: GameEvent[] = (data.history ?? []).map((h) => ({
+    type: (h as any).type ?? 'STAT_CHANGED',
+    timestamp: h.tick,
+    data: (h as any).data,
+  }));
+
   return {
     species: (data.state.species as 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE') || 'FLAN_BEBE',
     stats: {
@@ -76,11 +84,8 @@ export function deserialize(data: SaveData): PetState {
     },
     alive: data.state.alive ?? true,
     totalTicks: data.totalTicks ?? 0,
-    history: (data.history ?? []).map((h) => ({
-      type: (h as any).type ?? 'STAT_CHANGED',
-      timestamp: h.tick,
-      data: (h as any).data,
-    })),
+    history: historyEvents,
+    historyStats: data.historyStats ?? calculateHistoryStats(historyEvents),
     unlockedGifts: data.unlockedGifts ?? [],
     unlockedAchievements: data.unlockedAchievements ?? [],
     album: data.album ?? {},
@@ -129,4 +134,30 @@ export function deserializeFromJSON(json: string): PetState {
     console.error('Failed to deserialize SaveData:', error);
     return createInitialPetState();
   }
+}
+
+export function calculateHistoryStats(history: GameEvent[]): HistoryStats {
+  const counts: Record<string, number> = {};
+  let total = 0;
+  const evolvedForms: string[] = [];
+
+  for (const event of history) {
+    // Count actions
+    const data = event.data as Record<string, unknown> | undefined;
+    if (data && typeof data.action === 'string') {
+      const action = data.action;
+      counts[action] = (counts[action] || 0) + 1;
+      total++;
+    }
+
+    // Track evolutions
+    if (event.type === 'EVOLVED') {
+      const data = event.data as Record<string, unknown> | undefined;
+      if (data && typeof data.to === 'string') {
+        evolvedForms.push(data.to);
+      }
+    }
+  }
+
+  return { actionCounts: counts, totalActions: total, evolvedForms };
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialPetState } from '../src/model/PetState';
 import { evaluateGiftUnlocks, getUnlockedGifts, GIFT_CATALOG } from '../src/features/gifts';
+import { calculateHistoryStats } from '../src/persistence/serialize';
 
 describe('gifts', () => {
   it('no desbloquea regalos sin condiciones cumplidas', () => {
@@ -20,6 +21,8 @@ describe('gifts', () => {
       data: { action: 'FEED' },
     });
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateGiftUnlocks(state);
     
     expect(result.unlockedGifts).toContain('gift_first_meal');
@@ -37,6 +40,8 @@ describe('gifts', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateGiftUnlocks(state);
     
     expect(result.unlockedGifts).toContain('gift_playtime_joy');
@@ -53,6 +58,8 @@ describe('gifts', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateGiftUnlocks(state);
     
     expect(result.unlockedGifts).toContain('gift_dreams');
@@ -69,6 +76,8 @@ describe('gifts', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateGiftUnlocks(state);
     
     expect(result.unlockedGifts).toContain('gift_health_potion');
@@ -85,6 +94,8 @@ describe('gifts', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateGiftUnlocks(state);
     
     expect(result.unlockedGifts).toContain('gift_affection');
@@ -100,6 +111,8 @@ describe('gifts', () => {
       data: { from: 'FLAN_ADULT', to: 'POMPOMPURIN' },
     });
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateGiftUnlocks(state);
     
     expect(result.unlockedGifts).toContain('gift_perfect_care');
@@ -143,6 +156,9 @@ describe('gifts', () => {
       timestamp: 1,
       data: { action: 'FEED' },
     });
+
+    state.historyStats = calculateHistoryStats(state.history);
+
     state = evaluateGiftUnlocks(state);
     
     // gift_first_meal solo debe aparecer una vez
@@ -159,6 +175,8 @@ describe('gifts', () => {
       data: { action: 'FEED' },
     });
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     state = evaluateGiftUnlocks(state);
     const unlockedGifts = getUnlockedGifts(state);
     

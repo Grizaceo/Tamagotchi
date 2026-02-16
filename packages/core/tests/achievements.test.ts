@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialPetState } from '../src/model/PetState';
 import { evaluateAchievementUnlocks, getUnlockedAchievements, ACHIEVEMENT_CATALOG } from '../src/features/achievements';
+import { calculateHistoryStats } from '../src/persistence/serialize';
 
 describe('achievements', () => {
   it('no desbloquea logros sin cumplir condiciones', () => {
@@ -22,6 +23,8 @@ describe('achievements', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateAchievementUnlocks(state);
     
     expect(result.unlockedAchievements).toContain('ach_caretaker');
@@ -37,6 +40,8 @@ describe('achievements', () => {
       data: { from: 'FLAN_ADULT', to: 'POMPOMPURIN' },
     });
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateAchievementUnlocks(state);
     
     expect(result.unlockedAchievements).toContain('ach_perfect_pet');
@@ -53,6 +58,8 @@ describe('achievements', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateAchievementUnlocks(state);
     
     expect(result.unlockedAchievements).toContain('ach_foodie');
@@ -69,6 +76,8 @@ describe('achievements', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateAchievementUnlocks(state);
     
     expect(result.unlockedAchievements).toContain('ach_playmate');
@@ -85,6 +94,8 @@ describe('achievements', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateAchievementUnlocks(state);
     
     expect(result.unlockedAchievements).toContain('ach_healer');
@@ -124,6 +135,8 @@ describe('achievements', () => {
       data: { from: 'FLAN_ADULT', to: 'SCONE' },
     });
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     const result = evaluateAchievementUnlocks(state);
     
     expect(result.unlockedAchievements).toContain('ach_all_forms');
@@ -140,6 +153,8 @@ describe('achievements', () => {
       });
     }
     
+    state.historyStats = calculateHistoryStats(state.history);
+
     // Evaluar múltiples veces
     state = evaluateAchievementUnlocks(state);
     state = evaluateAchievementUnlocks(state);

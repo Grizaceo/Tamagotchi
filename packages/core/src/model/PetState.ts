@@ -17,12 +17,19 @@ export interface MinigamesState {
   games: Record<MinigameId, MinigameStats>;
 }
 
+export interface HistoryStats {
+  actionCounts: Record<string, number>;
+  totalActions: number;
+  evolvedForms: string[];
+}
+
 export interface PetState {
   species: 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE';
   stats: Stats;
   alive: boolean;
   totalTicks: number;
   history: GameEvent[];
+  historyStats: HistoryStats;
   unlockedGifts: string[];
   unlockedAchievements: string[];
   album: Record<string, unknown>;
@@ -44,6 +51,11 @@ export function createInitialPetState(): PetState {
     alive: true,
     totalTicks: 0,
     history: [],
+    historyStats: {
+      actionCounts: {},
+      totalActions: 0,
+      evolvedForms: [],
+    },
     unlockedGifts: [],
     unlockedAchievements: [],
     album: {},

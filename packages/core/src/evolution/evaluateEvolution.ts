@@ -1,5 +1,4 @@
-import type { PetState } from '../model/PetState';
-import type { GameEvent } from '../model/Events';
+import type { PetState, HistoryStats } from '../model/PetState';
 import { getSortedRules, type EvolutionSpecies } from './evolutionRules';
 
 /**
@@ -33,7 +32,7 @@ export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined
 
   const rules = getSortedRules();
   // Analizamos la historia una sola vez para todas las reglas
-  const historyStats = analyzeHistory(state.history);
+  const historyStats = state.historyStats;
 
   for (const rule of rules) {
     if (checkConditions(state, rule.conditions, historyStats)) {
@@ -43,27 +42,6 @@ export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined
   }
 
   return undefined; // No cumple ninguna condición
-}
-
-interface HistoryStats {
-  actionCounts: Record<string, number>;
-  totalActions: number;
-}
-
-function analyzeHistory(history: GameEvent[]): HistoryStats {
-  const counts: Record<string, number> = {};
-  let total = 0;
-
-  for (const event of history) {
-    const data = event.data as Record<string, unknown> | undefined;
-    if (data && typeof data.action === 'string') {
-      const action = data.action;
-      counts[action] = (counts[action] || 0) + 1;
-      total++;
-    }
-  }
-
-  return { actionCounts: counts, totalActions: total };
 }
 
 /**
@@ -160,6 +138,7 @@ export function applyEvolutionIfNeeded(state: PetState): PetState {
       timestamp: state.totalTicks,
       data: { from: state.species, to: newSpecies },
     });
+    evolved.historyStats.evolvedForms.push(newSpecies);
     return evolved;
   }
 

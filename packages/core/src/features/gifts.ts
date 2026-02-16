@@ -163,24 +163,11 @@ export const GIFT_UNLOCK_CONDITIONS: GiftUnlockCondition[] = [
  * Retorna estado actualizado con regalos desbloqueados
  */
 export function evaluateGiftUnlocks(state: PetState): PetState {
-  // Optimización: Pre-calcular contadores escaneando el historial una sola vez
+  // Optimización: Usar contadores pre-calculados del estado
   const context: GiftUnlockContext = {
-    actionCounts: new Map(),
-    evolvedTo: new Set()
+    actionCounts: new Map(Object.entries(state.historyStats.actionCounts)),
+    evolvedTo: new Set(state.historyStats.evolvedForms)
   };
-
-  for (const event of state.history) {
-    // Contar acciones
-    if (event.data && typeof (event.data as any).action === 'string') {
-      const action = (event.data as any).action as string;
-      context.actionCounts.set(action, (context.actionCounts.get(action) || 0) + 1);
-    }
-
-    // Rastrear evoluciones
-    if (event.type === 'EVOLVED' && event.data && (event.data as any).to) {
-      context.evolvedTo.add((event.data as any).to as string);
-    }
-  }
 
   const newUnlocks: string[] = [];
 

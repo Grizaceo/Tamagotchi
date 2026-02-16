@@ -4,6 +4,7 @@ import { reduce } from '../src/engine/reducer';
 import { createAction } from '../src/model/Actions';
 import { tick } from '../src/engine/tick';
 import { evaluateEvolution, applyEvolutionIfNeeded } from '../src/evolution/evaluateEvolution';
+import { calculateHistoryStats } from '../src/persistence/serialize';
 
 describe('evolution', () => {
   it('inicia como FLAN_BEBE', () => {
@@ -101,6 +102,8 @@ describe('evolution', () => {
       });
     }
 
+    state.historyStats = calculateHistoryStats(state.history);
+
     const newSpecies = evaluateEvolution(state);
     expect(newSpecies).toBe('MUFFIN');
 
@@ -125,6 +128,8 @@ describe('evolution', () => {
         data: { action: 'REST' },
       });
     }
+
+    state.historyStats = calculateHistoryStats(state.history);
 
     const newSpecies = evaluateEvolution(state);
     expect(newSpecies).toBe('BAGEL');
@@ -158,6 +163,8 @@ describe('evolution', () => {
       });
     }
 
+    state.historyStats = calculateHistoryStats(state.history);
+
     const newSpecies = evaluateEvolution(state);
     expect(newSpecies).toBe('SCONE');
 
@@ -184,6 +191,8 @@ describe('evolution', () => {
         data: { action: 'FEED' },
       });
     }
+
+    state.historyStats = calculateHistoryStats(state.history);
 
     const newSpecies = evaluateEvolution(state);
     // Debe ser POMPOMPURIN porque tiene prioridad 1 (menor que MUFFIN)
