@@ -149,13 +149,13 @@ const FLAN_BEBE_ANIMATIONS_V2: Record<AnimationState, AnimationDef> = {
 
 export const SPRITE_CONFIGS: Record<string, SpriteConfig> = {
     'FLAN_BEBE': {
-        src: '/assets/sprites/flan_bebe.png',
+        src: '/assets/sprites/flan_bebe.png?v=2',
         gridSize: 40,
         animations: FLAN_BEBE_ANIMATIONS_V3,
     },
     'FLAN_TEEN': {
         // Placeholder: use baby sprite clean
-        src: '/assets/sprites/flan_bebe.png',
+        src: '/assets/sprites/flan_bebe.png?v=2',
         gridSize: 40,
         animations: FLAN_BEBE_ANIMATIONS_V3,
     },
