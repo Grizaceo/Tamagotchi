@@ -1,0 +1,13 @@
+
+> pompom-tama@ dev /app
+> pnpm -C apps/web dev
+
+
+> web@0.0.0 dev /app/apps/web
+> vite
+
+
+  VITE v7.3.1  ready in 274 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
