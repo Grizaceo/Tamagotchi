@@ -68,13 +68,13 @@ export function deserialize(data: SaveData): PetState {
 
   // Migración de unlockedForms (v1 -> v2)
   let unlockedForms: string[];
-  if (data.unlockedForms) {
-    unlockedForms = data.unlockedForms;
+  if (Array.isArray(data.unlockedForms)) {
+    unlockedForms = data.unlockedForms.filter(f => typeof f === 'string');
   } else {
     console.log('Migrating save data: Calculating unlocked forms from history...');
     unlockedForms = calculateUnlockedFormsFromHistory(data.history || []);
     // Asegurar que la especie actual esté incluida
-    if (data.state.species && !unlockedForms.includes(data.state.species)) {
+    if (typeof data.state.species === 'string' && !unlockedForms.includes(data.state.species)) {
       unlockedForms.push(data.state.species);
     }
   }
@@ -88,7 +88,7 @@ export function deserialize(data: SaveData): PetState {
   const truncatedHistory = fullHistory.length > 50 ? fullHistory.slice(-50) : fullHistory;
 
   return {
-    species: (data.state.species as any) || 'FLAN_BEBE',
+    species: (typeof data.state.species === 'string' ? data.state.species : 'FLAN_BEBE') as any,
     stats: {
       hunger: Math.max(0, Math.min(100, data.state.stats.hunger ?? 50)),
       happiness: Math.max(0, Math.min(100, data.state.stats.happiness ?? 50)),
@@ -101,8 +101,8 @@ export function deserialize(data: SaveData): PetState {
     history: truncatedHistory,
     counts: counts,
     unlockedForms: unlockedForms,
-    unlockedGifts: data.unlockedGifts ?? [],
-    unlockedAchievements: data.unlockedAchievements ?? [],
+    unlockedGifts: Array.isArray(data.unlockedGifts) ? data.unlockedGifts.filter(g => typeof g === 'string') : [],
+    unlockedAchievements: Array.isArray(data.unlockedAchievements) ? data.unlockedAchievements.filter(a => typeof a === 'string') : [],
     album: data.album ?? {},
     minigames: {
       lastPlayed: data.state.minigames?.lastPlayed ?? { pudding: -1000, memory: -1000 },
