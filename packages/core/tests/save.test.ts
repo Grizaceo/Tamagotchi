@@ -99,4 +99,40 @@ describe('persistence', () => {
     expect(typeof json).toBe('string');
     expect(() => JSON.parse(json)).not.toThrow();
   });
+
+  it('sanitizes potentially malicious object injections', () => {
+    const json = JSON.stringify({
+      version: 1,
+      createdAt: Date.now(),
+      lastSaved: Date.now(),
+      totalTicks: 0,
+      state: {
+        species: { malicious: "object" }, // Should be string
+        stats: { hunger: 50, happiness: 50, energy: 50, health: 50 },
+        alive: true,
+      },
+      history: [],
+      counts: {},
+      unlockedForms: ["GOOD", { bad: "actor" }, "ALSO_GOOD"], // Should filter bad
+      unlockedGifts: { not: "array" }, // Should handle gracefully
+      settings: {
+        difficulty: 'normal',
+        soundEnabled: true,
+        animationsEnabled: true,
+      },
+    });
+
+    const recovered = deserializeFromJSON(json);
+
+    expect(typeof recovered.species).toBe('string');
+    expect(recovered.species).toBe('FLAN_BEBE'); // Fallback
+
+    expect(Array.isArray(recovered.unlockedForms)).toBe(true);
+    expect(recovered.unlockedForms).toContain('GOOD');
+    expect(recovered.unlockedForms).toContain('ALSO_GOOD');
+    expect(recovered.unlockedForms.some(x => typeof x !== 'string')).toBe(false);
+
+    expect(Array.isArray(recovered.unlockedGifts)).toBe(true);
+    expect(recovered.unlockedGifts.length).toBe(0); // empty array fallback
+  });
 });
