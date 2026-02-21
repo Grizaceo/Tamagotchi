@@ -1,4 +1,4 @@
-import type { PetState, InteractionCounts } from '../model/PetState';
+import type { PetState, InteractionCounts, MinigameStats } from '../model/PetState';
 import type { SaveData } from '../model/SaveData';
 import { SAVE_DATA_VERSION } from '../model/SaveData';
 import { createInitialPetState } from '../model/PetState';
@@ -48,6 +48,16 @@ export function serialize(state: PetState): SaveData {
   };
 }
 
+function sanitizeNonNegativeNumber(value: any, fallback: number = 0): number {
+  if (typeof value !== 'number' || isNaN(value)) return fallback;
+  return Math.max(0, value);
+}
+
+function sanitizeStringArray(value: any): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(item => typeof item === 'string');
+}
+
 /**
  * Convierte SaveData a PetState
  */
@@ -60,7 +70,14 @@ export function deserialize(data: SaveData): PetState {
   // Migración de counts (v1 -> v2)
   let counts: InteractionCounts;
   if (data.counts) {
-    counts = data.counts;
+    counts = {
+      totalActions: sanitizeNonNegativeNumber(data.counts.totalActions),
+      feed: sanitizeNonNegativeNumber(data.counts.feed),
+      play: sanitizeNonNegativeNumber(data.counts.play),
+      rest: sanitizeNonNegativeNumber(data.counts.rest),
+      medicate: sanitizeNonNegativeNumber(data.counts.medicate),
+      pet: sanitizeNonNegativeNumber(data.counts.pet),
+    };
   } else {
     console.log('Migrating save data: Calculating counts from history...');
     counts = calculateCountsFromHistory(data.history || []);
@@ -69,7 +86,7 @@ export function deserialize(data: SaveData): PetState {
   // Migración de unlockedForms (v1 -> v2)
   let unlockedForms: string[];
   if (data.unlockedForms) {
-    unlockedForms = data.unlockedForms;
+    unlockedForms = sanitizeStringArray(data.unlockedForms);
   } else {
     console.log('Migrating save data: Calculating unlocked forms from history...');
     unlockedForms = calculateUnlockedFormsFromHistory(data.history || []);
@@ -87,6 +104,14 @@ export function deserialize(data: SaveData): PetState {
 
   const truncatedHistory = fullHistory.length > 50 ? fullHistory.slice(-50) : fullHistory;
 
+  const sanitizeMinigameStats = (stats: any): MinigameStats => ({
+    lastPlayed: typeof stats?.lastPlayed === 'number' ? stats.lastPlayed : 0, // Allow negative? usually lastPlayed is timestamp. 0 is fine.
+    bestScore: sanitizeNonNegativeNumber(stats?.bestScore),
+    totalPlayed: sanitizeNonNegativeNumber(stats?.totalPlayed),
+    totalWins: sanitizeNonNegativeNumber(stats?.totalWins),
+    totalPerfect: sanitizeNonNegativeNumber(stats?.totalPerfect),
+  });
+
   return {
     species: (data.state.species as any) || 'FLAN_BEBE',
     stats: {
@@ -97,18 +122,21 @@ export function deserialize(data: SaveData): PetState {
       affection: Math.max(0, Math.min(100, data.state.stats.affection ?? 50)),
     },
     alive: data.state.alive ?? true,
-    totalTicks: data.totalTicks ?? 0,
+    totalTicks: sanitizeNonNegativeNumber(data.totalTicks),
     history: truncatedHistory,
     counts: counts,
     unlockedForms: unlockedForms,
-    unlockedGifts: data.unlockedGifts ?? [],
-    unlockedAchievements: data.unlockedAchievements ?? [],
+    unlockedGifts: sanitizeStringArray(data.unlockedGifts),
+    unlockedAchievements: sanitizeStringArray(data.unlockedAchievements),
     album: data.album ?? {},
     minigames: {
-      lastPlayed: data.state.minigames?.lastPlayed ?? { pudding: -1000, memory: -1000 },
-      games: data.state.minigames?.games ?? {
-        pudding: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
-        memory: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+      lastPlayed: {
+        pudding: typeof data.state.minigames?.lastPlayed?.pudding === 'number' ? data.state.minigames.lastPlayed.pudding : -1000,
+        memory: typeof data.state.minigames?.lastPlayed?.memory === 'number' ? data.state.minigames.lastPlayed.memory : -1000,
+      },
+      games: {
+        pudding: sanitizeMinigameStats(data.state.minigames?.games?.pudding),
+        memory: sanitizeMinigameStats(data.state.minigames?.games?.memory),
       },
     },
     settings: {
