@@ -356,8 +356,10 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
 }
 
 function loadState(): PetState {
-  // Support ?reset in URL to force-clear saved data
-  if (window.location.search.includes('reset')) {
+  // Support ?reset in URL to force-clear saved data (Development only)
+  // Security: Guards against a CSRF-like destructive action where an attacker
+  // could craft a link forcing users to accidentally wipe their save data.
+  if (import.meta.env.DEV && window.location.search.includes('reset')) {
     console.log('[PomPom] Force reset via ?reset param — clearing save data');
     localStorage.removeItem(STORAGE_KEY);
     // Clean up the URL to prevent re-triggering on refresh
