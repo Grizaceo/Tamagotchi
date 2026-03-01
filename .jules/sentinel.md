@@ -1,0 +1,4 @@
+## 2024-05-24 - Unauthorized destructive action via URL parameter
+**Vulnerability:** A `?reset` URL parameter allowed any user to trigger a destructive action (clearing LocalStorage save data) by simply visiting a crafted link. This functions as a form of client-side Denial of Service or CSRF where user data can be destroyed.
+**Learning:** Destructive or debugging actions that are controlled directly via URL parameters must not be exposed in production builds, as they can be triggered maliciously by external links.
+**Prevention:** All debugging and data-destructive logic triggered via URL must be strictly guarded behind environment checks (e.g., `import.meta.env.DEV` in Vite) so that the code is completely stripped out of production builds.
