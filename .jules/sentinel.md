@@ -1,0 +1,4 @@
+## 2024-03-02 - Unauthorized Data Reset via URL Parameter
+**Vulnerability:** The application allowed anyone to force-clear saved data via a simple `?reset` URL parameter because it was missing an environment check for development mode. This could lead to a Client-Side Denial of Service (DoS) where a user's game state is maliciously deleted by convincing them to click a link with `?reset`.
+**Learning:** Debugging features that perform destructive actions (like wiping local storage) must be strictly separated from production code. Just hiding a feature from the UI is not enough if the endpoint/logic is still accessible and not guarded.
+**Prevention:** Always wrap debug and testing logic with environment-specific checks (e.g., `import.meta.env.DEV` in Vite) so that the dead-code elimination process entirely removes the capability from the production build.
