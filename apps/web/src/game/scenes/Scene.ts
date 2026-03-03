@@ -1,5 +1,5 @@
 export interface MinigameResult {
-  gameId: 'pudding' | 'memory';
+  gameId: 'pudding' | 'memory' | 'snake';
   result: 'win' | 'perfect' | 'loss';
   score?: number;
 }

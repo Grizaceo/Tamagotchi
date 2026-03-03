@@ -126,6 +126,108 @@ describe('Minigames Integration', () => {
     });
   });
 
+  describe('SnakeGame flow', () => {
+    it('should apply rewards for snake win result', () => {
+      const state = createInitialPetState();
+      state.stats.happiness = 50;
+
+      const action = createAction('PLAY_MINIGAME', state.totalTicks, {
+        gameId: 'snake',
+        result: 'win',
+        score: 10,
+      });
+
+      const nextState = reduce(state, action);
+
+      expect(nextState.stats.happiness).toBeGreaterThan(50 + 10);
+      expect(nextState.minigames.lastPlayed['snake']).toBeDefined();
+    });
+
+    it('should apply perfect rewards for snake perfect result', () => {
+      const state = createInitialPetState();
+      state.stats.happiness = 50;
+
+      const action = createAction('PLAY_MINIGAME', state.totalTicks, {
+        gameId: 'snake',
+        result: 'perfect',
+        score: 15,
+      });
+
+      const nextState = reduce(state, action);
+
+      expect(nextState.stats.happiness).toBeGreaterThan(50 + 20);
+      expect(nextState.minigames.games['snake'].bestScore).toBe(15);
+    });
+
+    it('should not reward on snake loss', () => {
+      const state = createInitialPetState();
+      const initialHappiness = state.stats.happiness;
+
+      const action = createAction('PLAY_MINIGAME', state.totalTicks, {
+        gameId: 'snake',
+        result: 'loss',
+        score: 3,
+      });
+
+      const nextState = reduce(state, action);
+
+      expect(nextState.stats.happiness).toBeLessThanOrEqual(initialHappiness);
+    });
+
+    it('should serialize and deserialize snake minigame state', () => {
+      const state = createInitialPetState();
+
+      const nextState = reduce(state, createAction('PLAY_MINIGAME', state.totalTicks, {
+        gameId: 'snake',
+        result: 'win',
+        score: 10,
+      }));
+
+      const serialized = serializeToJSON(nextState);
+      const deserialized = deserializeFromJSON(serialized);
+
+      expect(deserialized.minigames.lastPlayed['snake']).toBeDefined();
+      expect(deserialized.minigames.games['snake']).toBeDefined();
+      expect(deserialized.minigames.games['snake'].totalPlayed).toBe(1);
+    });
+
+    it('should migrate old saves without snake to include snake defaults', () => {
+      // Simulate a save without snake field
+      const oldSaveJson = JSON.stringify({
+        version: 1,
+        createdAt: Date.now(),
+        lastSaved: Date.now(),
+        totalTicks: 100,
+        state: {
+          petLine: 'flan',
+          species: 'FLAN_BEBE',
+          stats: { hunger: 20, happiness: 60, energy: 70, health: 100, affection: 30 },
+          alive: true,
+          minigames: {
+            lastPlayed: { pudding: -1000, memory: -1000 },
+            games: {
+              pudding: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+              memory: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+            },
+          },
+        },
+        history: [],
+        counts: { totalActions: 0, feed: 0, play: 0, rest: 0, medicate: 0, pet: 0 },
+        unlockedForms: ['FLAN_BEBE'],
+        unlockedGifts: [],
+        unlockedAchievements: [],
+        album: {},
+        settings: { difficulty: 'normal', soundEnabled: true, animationsEnabled: true, reducedMotion: false, speed: '1x', paused: false },
+      });
+
+      const deserialized = deserializeFromJSON(oldSaveJson);
+
+      expect(deserialized.minigames.lastPlayed['snake']).toBeDefined();
+      expect(deserialized.minigames.games['snake']).toBeDefined();
+      expect(deserialized.minigames.games['snake'].totalPlayed).toBe(0);
+    });
+  });
+
   describe('Minigame cooldown', () => {
     it('should enforce cooldown (100 ticks) between games', () => {
       let state = createInitialPetState();

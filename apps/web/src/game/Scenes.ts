@@ -47,6 +47,7 @@ export const ALBUM_PAGE_SIZE = 4;
 export const MINIGAMES = [
   { id: 'pudding', label: 'Pudding Catch', scene: 'pudding-game' },
   { id: 'memory', label: 'Memory 2x2', scene: 'memory-game' },
+  { id: 'snake', label: 'Snake', scene: 'snake-game' },
 ];
 
 export function createInitialUiState(): UiState {

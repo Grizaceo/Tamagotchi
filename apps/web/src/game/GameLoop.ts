@@ -1,18 +1,20 @@
 import {
   createAction,
-  createInitialPetState,
+  createInitialPetStateFor,
   deserializeFromJSON,
   postProcessState,
   reduce,
   serializeToJSON,
   tick,
   type PetState,
+  type PetLine,
 } from '@pompom/core';
 import { bindInput, type InputCommand } from './Input';
 import { renderFrame } from './Render';
 import { SceneManager } from './SceneManager';
 import { MemoryGame } from './scenes/MemoryGame';
 import { PuddingGame } from './scenes/PuddingGame';
+import { SnakeGame } from './scenes/SnakeGame';
 import {
   ALBUM_PAGE_SIZE,
   BOTTOM_MENU,
@@ -23,8 +25,12 @@ import {
   wrapIndex,
   type SceneId,
 } from './Scenes';
+import {
+  CURRENT_STORAGE_KEY,
+  getStorageLookupKeys,
+  shouldForceReset,
+} from './runtimeConfig';
 
-const STORAGE_KEY = 'pompom-save-debug-v1'; // Force fresh save
 const TICK_MS = 1000;
 const SAVE_INTERVAL_MS = 5000;
 
@@ -32,8 +38,8 @@ const SAVE_INTERVAL_MS = 5000;
  * Inicia el game loop principal con UI retro.
  * Maneja ticks, persistencia, input y minijuegos.
  */
-export function startGameLoop(canvas: HTMLCanvasElement): () => void {
-  console.log('[PomPom] Starting GameLoop with DEBUG key:', STORAGE_KEY);
+export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: PetLine): () => void {
+  console.log('[PomPom] Starting GameLoop with storage key:', CURRENT_STORAGE_KEY);
   const ctx = canvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
 
@@ -51,8 +57,9 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
 
   minigameManager.registerScene('pudding-game', PuddingGame);
   minigameManager.registerScene('memory-game', MemoryGame);
+  minigameManager.registerScene('snake-game', SnakeGame);
 
-  let petState = loadState();
+  let petState = loadState(petLinePreference);
   let uiState = createInitialUiState();
   let lastTime = performance.now();
   let accumulator = 0;
@@ -226,7 +233,9 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
         // Confirmed
         console.log('[PomPom] RESET CONFIRMED. Wiping data...');
         isResetting = true; // Prevent auto-save on unload
-        localStorage.removeItem(STORAGE_KEY);
+        for (const key of getStorageLookupKeys()) {
+          localStorage.removeItem(key);
+        }
         window.location.reload();
         break;
       default:
@@ -355,25 +364,23 @@ export function startGameLoop(canvas: HTMLCanvasElement): () => void {
   };
 }
 
-function loadState(): PetState {
+function loadState(petLinePreference?: PetLine): PetState {
   // Support ?reset in URL to force-clear saved data
-  if (window.location.search.includes('reset')) {
+  if (shouldForceReset(window.location.search)) {
     console.log('[PomPom] Force reset via ?reset param — clearing save data');
-    localStorage.removeItem(STORAGE_KEY);
+    for (const key of getStorageLookupKeys()) {
+      localStorage.removeItem(key);
+    }
     // Clean up the URL to prevent re-triggering on refresh
     window.history.replaceState({}, '', window.location.pathname);
-    const fresh = createInitialPetState();
-    // Defensive coding: Force species to be FLAN_BEBE just in case
-    fresh.species = 'FLAN_BEBE';
+    const fresh = createInitialPetStateFor(petLinePreference ?? 'flan');
     console.log('[PomPom] Fresh state:', fresh.species, 'health:', fresh.stats.health, 'alive:', fresh.alive);
     return fresh;
   }
 
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = loadRawSave();
   if (!raw) {
-    const fresh = createInitialPetState();
-    // Defensive coding: Force species to be FLAN_BEBE just in case
-    fresh.species = 'FLAN_BEBE';
+    const fresh = createInitialPetStateFor(petLinePreference ?? 'flan');
     console.log('[PomPom] No save found, starting fresh:', fresh.species, 'health:', fresh.stats.health);
     return fresh;
   }
@@ -446,5 +453,24 @@ function applyWelcomeBackRecovery(state: PetState): PetState {
 }
 
 function saveState(state: PetState): void {
-  localStorage.setItem(STORAGE_KEY, serializeToJSON(state));
+  const serialized = serializeToJSON(state);
+  localStorage.setItem(CURRENT_STORAGE_KEY, serialized);
+  for (const key of getStorageLookupKeys()) {
+    if (key !== CURRENT_STORAGE_KEY) {
+      localStorage.removeItem(key);
+    }
+  }
+}
+
+function loadRawSave(): string | null {
+  for (const key of getStorageLookupKeys()) {
+    const raw = localStorage.getItem(key);
+    if (raw !== null) {
+      if (key !== CURRENT_STORAGE_KEY) {
+        localStorage.setItem(CURRENT_STORAGE_KEY, raw);
+      }
+      return raw;
+    }
+  }
+  return null;
 }

@@ -23,10 +23,20 @@
   <div id="tama-shell">
     <canvas id="screen" width="320" height="240"></canvas>
     <div id="controls">
-      <button class="ctrl-btn" data-cmd="LEFT" aria-label="Izquierda">◀</button>
-      <button class="ctrl-btn" data-cmd="ENTER" aria-label="Confirmar">●</button>
+      <div id="dpad">
+        <div class="dpad-row">
+          <button class="ctrl-btn" data-cmd="UP" aria-label="Arriba">▲</button>
+        </div>
+        <div class="dpad-row">
+          <button class="ctrl-btn" data-cmd="LEFT" aria-label="Izquierda">◀</button>
+          <button class="ctrl-btn" data-cmd="ENTER" aria-label="Confirmar">●</button>
+          <button class="ctrl-btn" data-cmd="RIGHT" aria-label="Derecha">▶</button>
+        </div>
+        <div class="dpad-row">
+          <button class="ctrl-btn" data-cmd="DOWN" aria-label="Abajo">▼</button>
+        </div>
+      </div>
       <button class="ctrl-btn" data-cmd="BACK" aria-label="Volver">✕</button>
-      <button class="ctrl-btn" data-cmd="RIGHT" aria-label="Derecha">▶</button>
     </div>
   </div>
   <script type="module" src="/src/main.ts"></script>

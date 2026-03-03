@@ -28,6 +28,13 @@
   padding: 0;
 }
 
+/* Prevent overflow-visible warnings/regressions on replaced elements. */
+img,
+video,
+canvas {
+  overflow: hidden;
+}
+
 body {
   min-height: 100dvh;
   display: flex;
@@ -85,10 +92,24 @@ body {
 
 #controls {
   display: flex;
-  gap: 10px;
+  gap: 14px;
   justify-content: center;
   align-items: center;
   padding: 4px 0;
+}
+
+#dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.dpad-row {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  align-items: center;
 }
 
 .ctrl-btn {
@@ -123,6 +144,13 @@ body {
     inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* D-pad directional buttons — slightly smaller to keep layout compact */
+#dpad .ctrl-btn {
+  width: 46px;
+  height: 46px;
+  font-size: 13px;
+}
+
 /* Center button (ENTER) slightly larger */
 .ctrl-btn[data-cmd="ENTER"] {
   width: 60px;
@@ -130,6 +158,13 @@ body {
   font-size: 18px;
   background: linear-gradient(145deg, #3a2a1a, #2a1f14);
   border-color: var(--frame-gold);
+}
+
+/* ENTER inside dpad inherits dpad compact size */
+#dpad .ctrl-btn[data-cmd="ENTER"] {
+  width: 50px;
+  height: 50px;
+  font-size: 16px;
 }
 
 .ctrl-btn[data-cmd="ENTER"]:active,
@@ -171,10 +206,22 @@ body {
     font-size: 13px;
   }
 
+  #dpad .ctrl-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 11px;
+  }
+
   .ctrl-btn[data-cmd="ENTER"] {
     width: 54px;
     height: 54px;
     font-size: 16px;
+  }
+
+  #dpad .ctrl-btn[data-cmd="ENTER"] {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
   }
 }
 
@@ -183,13 +230,24 @@ body {
     width: 42px;
     height: 42px;
     font-size: 11px;
-    gap: 6px;
+  }
+
+  #dpad .ctrl-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 10px;
   }
 
   .ctrl-btn[data-cmd="ENTER"] {
     width: 48px;
     height: 48px;
     font-size: 14px;
+  }
+
+  #dpad .ctrl-btn[data-cmd="ENTER"] {
+    width: 40px;
+    height: 40px;
+    font-size: 12px;
   }
 }
 
@@ -212,14 +270,25 @@ body {
   }
 
   .ctrl-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 12px;
+    width: 40px;
+    height: 40px;
+    font-size: 11px;
+  }
+
+  #dpad .ctrl-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 10px;
   }
 
   .ctrl-btn[data-cmd="ENTER"] {
-    width: 50px;
-    height: 50px;
+    width: 46px;
+    height: 46px;
+  }
+
+  #dpad .ctrl-btn[data-cmd="ENTER"] {
+    width: 40px;
+    height: 40px;
   }
 }
 

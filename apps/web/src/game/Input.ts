@@ -1,8 +1,10 @@
-export type InputCommand = 'LEFT' | 'RIGHT' | 'ENTER' | 'BACK';
+export type InputCommand = 'LEFT' | 'RIGHT' | 'UP' | 'DOWN' | 'ENTER' | 'BACK';
 
 const KEY_MAP: Record<string, InputCommand> = {
   ArrowLeft: 'LEFT',
   ArrowRight: 'RIGHT',
+  ArrowUp: 'UP',
+  ArrowDown: 'DOWN',
   Enter: 'ENTER',
   Escape: 'BACK',
 };
@@ -23,7 +25,12 @@ export function bindInput(onCommand: (command: InputCommand) => void): () => voi
 
   // ── Touch buttons ──
   const buttons = document.querySelectorAll<HTMLButtonElement>('.ctrl-btn[data-cmd]');
-  const touchHandlers: Array<{ el: HTMLButtonElement; start: EventListener; end: EventListener }> = [];
+  const touchHandlers: Array<{
+    el: HTMLButtonElement;
+    start: EventListener;
+    end: EventListener;
+    contextMenu: EventListener;
+  }> = [];
 
   buttons.forEach((btn) => {
     const cmd = btn.dataset.cmd as InputCommand | undefined;
@@ -44,18 +51,20 @@ export function bindInput(onCommand: (command: InputCommand) => void): () => voi
     btn.addEventListener('pointerleave', releaseVisual);
 
     // Prevent context menu on long press
-    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    const contextMenuHandler: EventListener = (e) => e.preventDefault();
+    btn.addEventListener('contextmenu', contextMenuHandler);
 
-    touchHandlers.push({ el: btn, start: fireCommand, end: releaseVisual });
+    touchHandlers.push({ el: btn, start: fireCommand, end: releaseVisual, contextMenu: contextMenuHandler });
   });
 
   // ── Cleanup ──
   return () => {
     window.removeEventListener('keydown', keyHandler);
-    touchHandlers.forEach(({ el, start, end }) => {
+    touchHandlers.forEach(({ el, start, end, contextMenu }) => {
       el.removeEventListener('pointerdown', start);
       el.removeEventListener('pointerup', end);
       el.removeEventListener('pointerleave', end);
+      el.removeEventListener('contextmenu', contextMenu);
     });
   };
 }

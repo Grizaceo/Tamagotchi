@@ -1,11 +1,8 @@
 import type { PetState, InteractionCounts } from '../model/PetState';
 import type { SaveData } from '../model/SaveData';
 import { SAVE_DATA_VERSION } from '../model/SaveData';
-import { createInitialPetState } from '../model/PetState';
+import { createInitialPetState, getBaseSpeciesForLine, type PetLine } from '../model/PetState';
 
-/**
- * Convierte PetState a SaveData para persistencia
- */
 export function serialize(state: PetState): SaveData {
   return {
     version: SAVE_DATA_VERSION,
@@ -13,14 +10,9 @@ export function serialize(state: PetState): SaveData {
     lastSaved: Date.now(),
     totalTicks: state.totalTicks,
     state: {
+      petLine: state.petLine,
       species: state.species,
-      stats: {
-        hunger: state.stats.hunger,
-        happiness: state.stats.happiness,
-        energy: state.stats.energy,
-        health: state.stats.health,
-        affection: state.stats.affection,
-      },
+      stats: { ...state.stats },
       alive: state.alive,
       minigames: {
         lastPlayed: state.minigames.lastPlayed,
@@ -33,47 +25,33 @@ export function serialize(state: PetState): SaveData {
       data: event.data as Record<string, unknown> | undefined,
     })),
     counts: state.counts,
-    unlockedForms: state.unlockedForms, // Nuevo en v2
+    unlockedForms: state.unlockedForms,
     unlockedGifts: state.unlockedGifts,
     unlockedAchievements: state.unlockedAchievements,
     album: state.album,
-    settings: {
-      difficulty: state.settings.difficulty,
-      soundEnabled: state.settings.soundEnabled,
-      animationsEnabled: state.settings.animationsEnabled,
-      reducedMotion: state.settings.reducedMotion,
-      speed: state.settings.speed,
-      paused: state.settings.paused,
-    },
+    settings: { ...state.settings },
   };
 }
 
-/**
- * Convierte SaveData a PetState
- */
 export function deserialize(data: SaveData): PetState {
   if (!data || !data.state || data.state.stats == null) {
     console.warn('SaveData corrupted, returning initial state');
     return createInitialPetState();
   }
 
-  // Migración de counts (v1 -> v2)
-  let counts: InteractionCounts;
-  if (data.counts) {
-    counts = data.counts;
-  } else {
-    console.log('Migrating save data: Calculating counts from history...');
-    counts = calculateCountsFromHistory(data.history || []);
-  }
+  const petLine = normalizePetLine(data.state.petLine);
+  const settings = data.settings ?? {};
 
-  // Migración de unlockedForms (v1 -> v2)
+  // Counts migration
+  const counts: InteractionCounts = data.counts ?? calculateCountsFromHistory(data.history || []);
+
+  // Unlocked forms migration
   let unlockedForms: string[];
   if (data.unlockedForms) {
     unlockedForms = data.unlockedForms;
   } else {
-    console.log('Migrating save data: Calculating unlocked forms from history...');
-    unlockedForms = calculateUnlockedFormsFromHistory(data.history || []);
-    // Asegurar que la especie actual esté incluida
+    const base = getBaseSpeciesForLine(petLine);
+    unlockedForms = calculateUnlockedFormsFromHistory(data.history || [], base);
     if (data.state.species && !unlockedForms.includes(data.state.species)) {
       unlockedForms.push(data.state.species);
     }
@@ -84,42 +62,52 @@ export function deserialize(data: SaveData): PetState {
     timestamp: h.tick,
     data: (h as any).data,
   }));
-
   const truncatedHistory = fullHistory.length > 50 ? fullHistory.slice(-50) : fullHistory;
 
   return {
-    species: (data.state.species as any) || 'FLAN_BEBE',
+    petLine,
+    species: (data.state.species as any) || getBaseSpeciesForLine(petLine),
     stats: {
-      hunger: Math.max(0, Math.min(100, data.state.stats.hunger ?? 50)),
-      happiness: Math.max(0, Math.min(100, data.state.stats.happiness ?? 50)),
-      energy: Math.max(0, Math.min(100, data.state.stats.energy ?? 50)),
-      health: Math.max(0, Math.min(100, data.state.stats.health ?? 50)),
-      affection: Math.max(0, Math.min(100, data.state.stats.affection ?? 50)),
+      hunger: clamp01(data.state.stats.hunger),
+      happiness: clamp01(data.state.stats.happiness),
+      energy: clamp01(data.state.stats.energy),
+      health: clamp01(data.state.stats.health),
+      affection: clamp01(data.state.stats.affection),
     },
     alive: data.state.alive ?? true,
     totalTicks: data.totalTicks ?? 0,
     history: truncatedHistory,
-    counts: counts,
-    unlockedForms: unlockedForms,
+    counts,
+    unlockedForms,
     unlockedGifts: data.unlockedGifts ?? [],
     unlockedAchievements: data.unlockedAchievements ?? [],
     album: data.album ?? {},
     minigames: {
-      lastPlayed: data.state.minigames?.lastPlayed ?? { pudding: -1000, memory: -1000 },
-      games: data.state.minigames?.games ?? {
-        pudding: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
-        memory: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+      lastPlayed: {
+        pudding: data.state.minigames?.lastPlayed?.pudding ?? -1000,
+        memory: data.state.minigames?.lastPlayed?.memory ?? -1000,
+        snake: (data.state.minigames?.lastPlayed as any)?.snake ?? -1000,
+      },
+      games: {
+        pudding: data.state.minigames?.games?.pudding ?? { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+        memory: data.state.minigames?.games?.memory ?? { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+        snake: (data.state.minigames?.games as any)?.snake ?? { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
       },
     },
     settings: {
-      difficulty: data.settings.difficulty ?? 'normal',
-      soundEnabled: data.settings.soundEnabled ?? true,
-      animationsEnabled: data.settings.animationsEnabled ?? true,
-      reducedMotion: data.settings.reducedMotion ?? false,
-      speed: data.settings.speed === '2x' ? '2x' : '1x',
-      paused: data.settings.paused ?? false,
+      difficulty: (settings as any).difficulty ?? 'normal',
+      soundEnabled: (settings as any).soundEnabled ?? true,
+      animationsEnabled: (settings as any).animationsEnabled ?? true,
+      reducedMotion: (settings as any).reducedMotion ?? false,
+      speed: (settings as any).speed === '2x' ? '2x' : '1x',
+      paused: (settings as any).paused ?? false,
     },
   };
+}
+
+function clamp01(value: number | undefined): number {
+  const v = value ?? 50;
+  return Math.max(0, Math.min(100, v));
 }
 
 function calculateCountsFromHistory(history: any[]): InteractionCounts {
@@ -131,7 +119,6 @@ function calculateCountsFromHistory(history: any[]): InteractionCounts {
     medicate: 0,
     pet: 0,
   };
-
   for (const event of history) {
     if (event.data && typeof event.data.action === 'string') {
       const action = event.data.action;
@@ -140,26 +127,30 @@ function calculateCountsFromHistory(history: any[]): InteractionCounts {
       if (action === 'REST') counts.rest++;
       if (action === 'MEDICATE') counts.medicate++;
       if (action === 'PET') counts.pet++;
-
       if (['FEED', 'PLAY', 'REST', 'MEDICATE', 'PET'].includes(action)) {
         counts.totalActions++;
       }
     }
   }
-
   return counts;
 }
 
-function calculateUnlockedFormsFromHistory(history: any[]): string[] {
+function calculateUnlockedFormsFromHistory(history: any[], baseSpecies: string): string[] {
   const forms = new Set<string>();
-  forms.add('FLAN_BEBE');
-
+  forms.add(baseSpecies);
   for (const event of history) {
     if (event.type === 'EVOLVED' && event.data && typeof event.data.to === 'string') {
       forms.add(event.data.to);
     }
   }
   return Array.from(forms);
+}
+
+function normalizePetLine(petLine: unknown): PetLine {
+  if (petLine === 'seal' || petLine === 'fiu' || petLine === 'salchicha') {
+    return petLine;
+  }
+  return 'flan';
 }
 
 export function serializeToJSON(state: PetState): string {

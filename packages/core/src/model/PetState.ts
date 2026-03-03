@@ -10,7 +10,7 @@ export interface MinigameStats {
   totalPerfect: number;
 }
 
-export type MinigameId = 'pudding' | 'memory';
+export type MinigameId = 'pudding' | 'memory' | 'snake';
 
 export interface MinigamesState {
   lastPlayed: Record<MinigameId, number>; // For cooldown tracking
@@ -26,8 +26,52 @@ export interface InteractionCounts {
   pet: number;
 }
 
+export type PetLine = 'flan' | 'seal' | 'fiu' | 'salchicha';
+
+export type PetSpecies =
+  | 'FLAN_BEBE'
+  | 'FLAN_TEEN'
+  | 'FLAN_ADULT'
+  | 'POMPOMPURIN'
+  | 'BAGEL'
+  | 'MUFFIN'
+  | 'SCONE'
+  | 'SEAL_EGG'
+  | 'SEAL_BABY'
+  | 'SEAL_TEEN'
+  | 'SEAL_PERFECT'
+  | 'SEAL_BROWN'
+  | 'SEAL_FAIL'
+  | 'FIU_EGG'
+  | 'FIU_BABY'
+  | 'FIU_TEEN'
+  | 'FIU_PERFECT'
+  | 'FIU_COMMON'
+  | 'FIU_FAIL'
+  | 'SALCHICHA_EGG'
+  | 'SALCHICHA_BABY'
+  | 'SALCHICHA_TEEN'
+  | 'SALCHICHA_PERFECT'
+  | 'SALCHICHA_BROWN'
+  | 'SALCHICHA_FAIL';
+
+export function getBaseSpeciesForLine(petLine: PetLine): PetSpecies {
+  switch (petLine) {
+    case 'seal':
+      return 'SEAL_EGG';
+    case 'fiu':
+      return 'FIU_EGG';
+    case 'salchicha':
+      return 'SALCHICHA_EGG';
+    case 'flan':
+    default:
+      return 'FLAN_BEBE';
+  }
+}
+
 export interface PetState {
-  species: 'FLAN_BEBE' | 'FLAN_TEEN' | 'FLAN_ADULT' | 'POMPOMPURIN' | 'MUFFIN' | 'BAGEL' | 'SCONE';
+  petLine: PetLine;
+  species: PetSpecies;
   stats: Stats;
   alive: boolean;
   totalTicks: number;
@@ -42,9 +86,15 @@ export interface PetState {
 }
 
 export function createInitialPetState(): PetState {
-  console.log('[PomPom Core] createInitialPetState called - Defaulting to FLAN_BEBE');
+  return createInitialPetStateFor('flan');
+}
+
+export function createInitialPetStateFor(petLine: PetLine): PetState {
+  console.log(`[PomPom Core] createInitialPetState called - Line=${petLine}`);
+  const initialSpecies = getBaseSpeciesForLine(petLine);
   return {
-    species: 'FLAN_BEBE',
+    petLine,
+    species: initialSpecies,
     stats: {
       hunger: 5,
       happiness: 80,
@@ -63,7 +113,7 @@ export function createInitialPetState(): PetState {
       medicate: 0,
       pet: 0,
     },
-    unlockedForms: ['FLAN_BEBE'], // Always starts with base form
+    unlockedForms: [initialSpecies], // Always starts with base form
     unlockedGifts: [],
     unlockedAchievements: [],
     album: {},
@@ -71,10 +121,12 @@ export function createInitialPetState(): PetState {
       lastPlayed: {
         pudding: -1000,
         memory: -1000,
+        snake: -1000,
       },
       games: {
         pudding: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
         memory: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+        snake: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
       },
     },
     settings: {
