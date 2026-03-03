@@ -17,7 +17,7 @@ const MENU_ICONS: { label: string; srcIndex: number }[] = [
 
 export class UIRenderer {
     private assetManager: AssetManager;
-    private iconSrc: string = '/assets/ui/icons.png';
+    private iconSrc: string = `${import.meta.env.BASE_URL}assets/ui/icons.png`;
 
     private selectedIconIndex: number = -1; // -1 means no menu selection active
 
