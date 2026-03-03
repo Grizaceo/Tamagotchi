@@ -7,6 +7,7 @@ export interface SaveData {
   lastSaved: number; // Timestamp en ms
   totalTicks: number;
   state: {
+    petLine?: 'flan' | 'seal' | 'fiu' | 'salchicha';
     species: string;
     stats: {
       hunger: number;
@@ -54,4 +55,4 @@ export interface SaveData {
   };
 }
 
-export const SAVE_DATA_VERSION = 2;
+export const SAVE_DATA_VERSION = 3;
