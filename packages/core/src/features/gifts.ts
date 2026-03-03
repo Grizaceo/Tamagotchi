@@ -231,5 +231,19 @@ export function getUnlockedGifts(state: PetState): Gift[] {
 // ============ Helpers privados ============
 
 function isEvolved(state: PetState): boolean {
-  return ['POMPOMPURIN', 'MUFFIN', 'BAGEL', 'SCONE'].includes(state.species);
+  return [
+    'POMPOMPURIN',
+    'MUFFIN',
+    'BAGEL',
+    'SCONE',
+    'SEAL_PERFECT',
+    'SEAL_BROWN',
+    'SEAL_FAIL',
+    'FIU_PERFECT',
+    'FIU_COMMON',
+    'FIU_FAIL',
+    'SALCHICHA_PERFECT',
+    'SALCHICHA_BROWN',
+    'SALCHICHA_FAIL',
+  ].includes(state.species);
 }

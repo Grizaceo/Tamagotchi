@@ -2,150 +2,154 @@ import type { PetState } from '../model/PetState';
 import { getSortedRules, type EvolutionSpecies } from './evolutionRules';
 
 /**
- * Evalúa si el pet debe evolucionar y retorna la nueva species, o undefined si no.
- * Determinista: solo depende del estado actual.
+ * Evaluates evolution based on pet line.
  */
 export function evaluateEvolution(state: PetState): EvolutionSpecies | undefined {
-  // Evolución temprana por edad (ticks)
-  if (state.species === 'FLAN_BEBE') {
-    // 1 minuto (60 ticks) para pasar a TEEN
-    if (state.totalTicks >= 60) {
-      console.log(`[PomPom Debug] Evolving FLAN_BEBE -> FLAN_TEEN (ticks=${state.totalTicks})`);
-      return 'FLAN_TEEN';
-    }
-    return undefined;
+  switch (state.petLine) {
+    case 'seal':
+      return evaluateSealLike(state, {
+        egg: 'SEAL_EGG',
+        baby: 'SEAL_BABY',
+        teen: 'SEAL_TEEN',
+        perfect: 'SEAL_PERFECT',
+        normal: 'SEAL_BROWN',
+        fail: 'SEAL_FAIL',
+      });
+    case 'fiu':
+      return evaluateSealLike(state, {
+        egg: 'FIU_EGG',
+        baby: 'FIU_BABY',
+        teen: 'FIU_TEEN',
+        perfect: 'FIU_PERFECT',
+        normal: 'FIU_COMMON',
+        fail: 'FIU_FAIL',
+      });
+    case 'salchicha':
+      return evaluateSealLike(state, {
+        egg: 'SALCHICHA_EGG',
+        baby: 'SALCHICHA_BABY',
+        teen: 'SALCHICHA_TEEN',
+        perfect: 'SALCHICHA_PERFECT',
+        normal: 'SALCHICHA_BROWN',
+        fail: 'SALCHICHA_FAIL',
+      });
+    case 'flan':
+    default:
+      return evaluateFlan(state);
+  }
+}
+
+type SealLikeSpecies = {
+  egg: EvolutionSpecies;
+  baby: EvolutionSpecies;
+  teen: EvolutionSpecies;
+  perfect: EvolutionSpecies;
+  normal: EvolutionSpecies;
+  fail: EvolutionSpecies;
+};
+
+function evaluateSealLike(state: PetState, sp: SealLikeSpecies): EvolutionSpecies | undefined {
+  // Egg -> Baby
+  if (state.species === sp.egg && state.totalTicks >= 60) {
+    return sp.baby;
+  }
+  // Baby -> Teen
+  if (state.species === sp.baby && state.totalTicks >= 300) {
+    return sp.teen;
+  }
+  // Teen -> Adult variants
+  if (state.species !== sp.teen) return undefined;
+  if (state.totalTicks < 900) return undefined;
+
+  // Perfect care path
+  const perfect =
+    state.stats.health >= 85 &&
+    state.stats.happiness >= 80 &&
+    state.stats.energy >= 50 &&
+    state.stats.hunger <= 30;
+  if (perfect) return sp.perfect;
+
+  // Fail / morza path (poor care)
+  const fail =
+    state.stats.health < 40 ||
+    state.stats.happiness < 30 ||
+    state.stats.hunger > 75;
+  if (fail) return sp.fail;
+
+  return sp.normal;
+}
+
+function evaluateFlan(state: PetState): EvolutionSpecies | undefined {
+  // Early linear stages
+  if (state.species === 'FLAN_BEBE' && state.totalTicks >= 60) {
+    return 'FLAN_TEEN';
+  }
+  if (state.species === 'FLAN_TEEN' && state.totalTicks >= 300) {
+    return 'FLAN_ADULT';
   }
 
-  if (state.species === 'FLAN_TEEN') {
-    // 5 minutos (300 ticks) para pasar a ADULT
-    if (state.totalTicks >= 300) {
-      console.log(`[PomPom Debug] Evolving FLAN_TEEN -> FLAN_ADULT (ticks=${state.totalTicks})`);
-      return 'FLAN_ADULT';
-    }
-    return undefined;
-  }
+  if (state.species !== 'FLAN_ADULT') return undefined;
 
-  // Si ya es una forma final (no es FLAN_ADULT), no evoluciona más
-  if (state.species !== 'FLAN_ADULT') {
-    return undefined;
-  }
-
-  const rules = getSortedRules();
-  // Analizamos los contadores agregados en PetState (O(1))
-
-  for (const rule of rules) {
+  for (const rule of getSortedRules('flan')) {
     if (checkConditions(state, rule.conditions)) {
-      console.log(`[PomPom Debug] Evolving FLAN_ADULT -> ${rule.targetSpecies} (Rule=${rule.name})`);
       return rule.targetSpecies;
     }
   }
-
-  return undefined; // No cumple ninguna condición
+  return undefined;
 }
 
-/**
- * Verifica si el estado cumple todas las condiciones de una regla
- */
-function checkConditions(
-  state: PetState,
-  conditions: Record<string, number | undefined>
-): boolean {
-  // Validaciones básicas de stats actuales
-  if (conditions.minTicks !== undefined && state.totalTicks < conditions.minTicks) {
-    return false;
-  }
-  if (conditions.minHappiness !== undefined && state.stats.happiness < conditions.minHappiness) {
-    return false;
-  }
-  if (conditions.maxHunger !== undefined && state.stats.hunger > conditions.maxHunger) {
-    return false;
-  }
-  if (conditions.minHealth !== undefined && state.stats.health < conditions.minHealth) {
-    return false;
-  }
-  if (conditions.minEnergy !== undefined && state.stats.energy < conditions.minEnergy) {
-    return false;
-  }
+type ConditionMap = Record<string, number | undefined>;
 
-  // Validaciones basadas en histórico acumulado (usando state.counts)
-  // Defensive check for counts (in case of old state or partial load)
+function checkConditions(state: PetState, conditions: ConditionMap): boolean {
+  if (conditions.minTicks !== undefined && state.totalTicks < conditions.minTicks) return false;
+  if (conditions.minHappiness !== undefined && state.stats.happiness < conditions.minHappiness) return false;
+  if (conditions.maxHunger !== undefined && state.stats.hunger > conditions.maxHunger) return false;
+  if (conditions.minHealth !== undefined && state.stats.health < conditions.minHealth) return false;
+  if (conditions.minEnergy !== undefined && state.stats.energy < conditions.minEnergy) return false;
+  if (conditions.maxEnergy !== undefined && state.stats.energy > conditions.maxEnergy) return false;
+
   const counts = state.counts || {
     feed: 0,
     play: 0,
     rest: 0,
     medicate: 0,
     pet: 0,
-    totalActions: 0
+    totalActions: 0,
   };
 
-  // maxFeeds
-  if (conditions.maxFeeds !== undefined) {
-    if (counts.feed > conditions.maxFeeds) {
-      return false;
-    }
-  }
-
-  // minFeeds
-  if (conditions.minFeeds !== undefined) {
-    if (counts.feed < conditions.minFeeds) {
-      return false;
-    }
-  }
-
-  // minPlayCount
-  if (conditions.minPlayCount !== undefined) {
-    if (counts.play < conditions.minPlayCount) {
-      return false;
-    }
-  }
-
-  // maxSleepInterruptions (basado en contador REST)
-  if (conditions.maxSleepInterruptions !== undefined) {
-    if (counts.rest > conditions.maxSleepInterruptions) {
-      return false;
-    }
-  }
-
-  // minCleanliness: inversión de "Pet" count (cuidados afectuosos) / total
-  if (conditions.minCleanliness !== undefined) {
-    const petCount = counts.pet;
-    const totalActions = counts.totalActions;
-    // Limpieza baja si poco PET en proporción a total
-    const cleanliness = totalActions > 0 ? (petCount / totalActions) * 100 : 0;
-    if (cleanliness < conditions.minCleanliness) {
-      return false;
-    }
+  if (conditions.maxFeeds !== undefined && counts.feed > conditions.maxFeeds) return false;
+  if (conditions.minFeeds !== undefined && counts.feed < conditions.minFeeds) return false;
+  if (conditions.minPlayCount !== undefined && counts.play < conditions.minPlayCount) return false;
+  if (conditions.maxPlayCount !== undefined && counts.play > conditions.maxPlayCount) return false;
+  if (conditions.maxSleepInterruptions !== undefined && counts.rest > conditions.maxSleepInterruptions) return false;
+  if (conditions.maxAffectionRatio !== undefined) {
+    const total = counts.totalActions;
+    const ratio = total > 0 ? (counts.pet / total) * 100 : 0;
+    if (ratio > conditions.maxAffectionRatio) return false;
   }
 
   return true;
 }
 
 /**
- * Aplica la evolución al estado si corresponde
- * Retorna el estado modificado o igual si no hay evolución
+ * Applies evolution if needed.
  */
 export function applyEvolutionIfNeeded(state: PetState): PetState {
   const newSpecies = evaluateEvolution(state);
+  if (!newSpecies) return state;
 
-  if (newSpecies) {
-    const evolved = structuredClone(state);
-    evolved.species = newSpecies;
-    evolved.history.push({
-      type: 'EVOLVED',
-      timestamp: state.totalTicks,
-      data: { from: state.species, to: newSpecies },
-    });
+  const evolved = structuredClone(state);
+  evolved.species = newSpecies;
+  evolved.history.push({
+    type: 'EVOLVED',
+    timestamp: state.totalTicks,
+    data: { from: state.species, to: newSpecies },
+  });
 
-    // Registrar forma desbloqueada para persistencia (ya que el historial se trunca)
-    if (!evolved.unlockedForms) {
-        evolved.unlockedForms = [];
-    }
-    if (!evolved.unlockedForms.includes(newSpecies)) {
-      evolved.unlockedForms.push(newSpecies);
-    }
-
-    return evolved;
+  if (!evolved.unlockedForms) evolved.unlockedForms = [];
+  if (!evolved.unlockedForms.includes(newSpecies)) {
+    evolved.unlockedForms.push(newSpecies);
   }
 
-  return state;
+  return evolved;
 }
