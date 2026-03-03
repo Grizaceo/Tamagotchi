@@ -236,6 +236,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
         for (const key of getStorageLookupKeys()) {
           localStorage.removeItem(key);
         }
+        localStorage.removeItem('pompom-pet-line');
         window.location.reload();
         break;
       default:
