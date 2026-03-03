@@ -59,12 +59,12 @@ export class UIRenderer {
     }
 
     private drawFooter(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
-        const displaySize = 24;
-        const padding = 20; // Increase padding for text
+        const displaySize = 20;
+        const padding = 16; // Slightly tighter to offset smaller icons
         const count = MENU_ICONS.length;
         const totalWidth = count * displaySize + (count - 1) * padding;
         const startX = (320 - totalWidth) / 2;
-        const y = 240 - 32; // Move up slightly to fit text
+        const y = 240 - 30; // Slightly higher baseline
 
         // Grid assumption for retro icons: 1024x1024, ~256px grid
         const cols = 4;
@@ -117,6 +117,7 @@ export class UIRenderer {
             const label = icon.label.toUpperCase().substring(0, 6);
             ctx.fillText(label, x + displaySize / 2, y + displaySize + 2);
         });
-        ctx.textAlign = 'left'; // Reset
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
     }
 }

@@ -120,17 +120,8 @@ function drawHome(
   drawStats(ctx, state, { x: area.x, y: area.y, w: area.w, h: statsHeight }, options?.spriteRenderer, options?.assetManager);
 
   if (options?.spriteRenderer) {
-    // Fill behind the sprite
     const sr = options.spriteRenderer;
-    // We assume sprite position is handled in GameLoop or here.
-    // Let's verify overlap visual:
-    // Stats end at y + 32.
-    // Sprite usually starts lower.
-
-    // Debug helper: draw sprite box
-    // ctx.strokeStyle = 'red';
-    // ctx.strokeRect(sr.x, sr.y, sr.displaySize, sr.displaySize);
-
+    ctx.fillStyle = PALETTE.screen; // Resetear explícito: drawStats puede dejar fillStyle sucio
     ctx.fillRect(sr.x, sr.y, sr.displaySize, sr.displaySize);
     sr.draw(ctx);
   } else {
@@ -200,6 +191,7 @@ function drawFallbackPet(
   ctx.textBaseline = 'top';
   ctx.fillText(state.species.replace('_', ' '), centerX, area.y + area.h - 12);
   ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
 }
 
 // Reuse objects to avoid allocation in render loop
@@ -251,7 +243,7 @@ function drawCompactStat(
   spriteRenderer?: SpriteRenderer,
   assetManager?: AssetManager
 ) {
-  const iconSize = 12;
+  const iconSize = 10;
   const centerX = x + w / 2;
 
   // 1. Icon
@@ -283,7 +275,7 @@ function drawCompactStat(
   }
 
   // 2. Bar (below icon)
-  const barH = 4;
+  const barH = 3;
   const barY = y + iconSize + 2;
 
   ctx.fillStyle = PALETTE.inkSoft; // bg
@@ -330,7 +322,7 @@ function drawCompactStat(
     ctx.fillStyle = PALETTE.inkSoft;
     ctx.font = '6px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(stat.label.substring(0, 3), centerX, barY + barH + 6);
+    ctx.fillText(stat.label.substring(0, 3), centerX, barY + barH + 5);
     ctx.textAlign = 'left';
   }
 }
@@ -359,6 +351,7 @@ function drawCareMenu(ctx: CanvasRenderingContext2D, ui: UiState, area: Rect): v
     ctx.fillText(action.label.toUpperCase(), x + itemW / 2, y + 12);
   });
   ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
 }
 
 function drawGifts(
@@ -502,8 +495,9 @@ function drawSettings(ctx: CanvasRenderingContext2D, state: PetState, ui: UiStat
     ctx.fillText('ENTER: Confirm', area.x + area.w / 2, area.y + 60);
     ctx.fillStyle = PALETTE.inkSoft;
     ctx.fillText('BACK: Cancel', area.x + area.w / 2, area.y + 70);
-    ctx.textAlign = 'left';
+    ctx.textAlign = 'start';
   }
+  ctx.textBaseline = 'alphabetic';
 }
 
 function getSettingValue(id: string, state: PetState): string {
@@ -541,6 +535,7 @@ function drawMinigames(
     const y = area.y + (area.h - drawH) / 2;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(minigameFrame, x, y, drawW, drawH);
+    ctx.textBaseline = 'alphabetic';
     return;
   }
 
@@ -555,6 +550,7 @@ function drawMinigames(
   ctx.fillStyle = PALETTE.ink;
   ctx.fillText('LEFT/RIGHT to choose', area.x + 6, area.y + area.h - 26);
   ctx.fillText('ENTER to play - BACK to exit', area.x + 6, area.y + area.h - 14);
+  ctx.textBaseline = 'alphabetic';
 }
 
 function wrapText(
