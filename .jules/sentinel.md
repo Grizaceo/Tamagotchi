@@ -1,0 +1,4 @@
+## 2024-05-18 - Client-Side Data Destruction via URL Parameters (CSRF/DoS)
+**Vulnerability:** The application allowed forcing a state reset by adding `?reset` to the URL. This logic was missing an environment check (`import.meta.env.DEV`), meaning any user could be tricked into clicking a link like `https://game.example.com/?reset`, instantly wiping their saved game progress without confirmation.
+**Learning:** Destructive actions exposed via URL parameters create a significant risk of accidental or malicious data loss if not properly guarded. This was likely added for debugging convenience but left exposed in production.
+**Prevention:** Any debug features, especially those that perform destructive actions like clearing `localStorage` or resetting state, MUST be guarded by `import.meta.env.DEV` to ensure they are excluded from production builds.
