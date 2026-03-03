@@ -292,6 +292,69 @@ body {
   }
 }
 
+/* ── Pet Selection Overlay ── */
+
+#pet-select {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark);
+  z-index: 100;
+}
+
+#pet-select[hidden] { display: none; }
+
+#pet-select-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 32px;
+  background: linear-gradient(145deg, #2a1f14, #1a1209);
+  border: 2px solid var(--frame-gold);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+#pet-select-title {
+  color: var(--frame-gold);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+#pet-select-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.pet-btn {
+  background: var(--btn-bg);
+  border: 2px solid var(--btn-border);
+  color: var(--btn-text);
+  font-family: inherit;
+  font-size: 10px;
+  padding: 12px 24px;
+  cursor: pointer;
+  border-radius: 8px;
+  letter-spacing: 1px;
+  transition: all 0.1s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pet-btn:hover,
+.pet-btn:active {
+  background: var(--btn-active);
+  border-color: #e08050;
+  color: #fff;
+  transform: scale(1.03);
+}
+
 /* ── Desktop: hide controls if keyboard available ── */
 @media (hover: hover) and (pointer: fine) {
   #controls {

@@ -98,7 +98,14 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       for (const key in SPRITE_CONFIGS) {
         promises.push(assetManager.load(key, SPRITE_CONFIGS[key].src));
       }
-      return Promise.all(promises);
+      return Promise.allSettled(promises).then((results) => {
+        let loaded = 0;
+        for (const r of results) {
+          if (r.status === 'rejected') console.warn('[PomPom] Sprite failed to load:', r.reason);
+          else loaded++;
+        }
+        console.log(`[PomPom] Sprites: ${loaded}/${results.length} loaded`);
+      });
     }).then(() => {
       // Create the initial sprite renderer now that assets are loaded
       updateSpriteRenderer(petState);
