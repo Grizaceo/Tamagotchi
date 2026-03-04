@@ -1,0 +1,4 @@
+## 2024-05-24 - [CSRF/DoS via ?reset URL parameter]
+**Vulnerability:** The ?reset URL parameter unconditionally clears the user's localStorage save data, allowing an attacker to craft a malicious link that wipes out a victim's virtual pet state when visited.
+**Learning:** Destructive actions meant for debugging were not properly guarded by environment checks, making them accessible in production.
+**Prevention:** Always guard debug-only or potentially destructive client-side state actions (like clearing storage) with environment checks, e.g. `import.meta.env.DEV` in Vite or `process.env.NODE_ENV !== 'production'` to ensure they are stripped from production builds.
