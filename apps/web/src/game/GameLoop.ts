@@ -408,20 +408,27 @@ function loadState(petLinePreference?: PetLine): PetState {
   console.log('[PomPom] Loaded save:', loaded.species, 'health:', loaded.stats.health, 'alive:', loaded.alive, 'ticks:', loaded.totalTicks);
 
   // ── Catch-up Offline Ticks ──
+  // B: apply only 25% of real elapsed time — 8h offline ≈ 2h of degradation.
+  // C: pet cannot die from offline ticks alone (health floor = 5).
   if (lastSaved && !loaded.settings.paused && loaded.alive) {
     const now = Date.now();
     const diffSeconds = Math.floor((now - lastSaved) / 1000);
 
-    // Apply catch-up if more than 30 seconds passed
     if (diffSeconds > 30) {
-      // Limit to 12 hours of offline time to avoid extreme cases
       const maxOfflineSeconds = 12 * 3600;
-      const secondsToApply = Math.min(diffSeconds, maxOfflineSeconds);
+      const realSeconds = Math.min(diffSeconds, maxOfflineSeconds);
+      const effectiveTicks = Math.round(realSeconds * 0.25); // B: 25% rate
 
-      console.log(`[PomPom] Catching up ${secondsToApply} seconds of offline time...`);
-      // We use tick with large count for efficiency.
-      // For more accuracy on death during offline, we could loop, but tick is decent.
-      loaded = tick(loaded, secondsToApply);
+      console.log(`[PomPom] Offline ${realSeconds}s → applying ${effectiveTicks} effective ticks (25%)`);
+      loaded = tick(loaded, effectiveTicks);
+
+      // C: health floor — pet can't die while offline, only in real-time
+      if (!loaded.alive) {
+        loaded = { ...loaded, alive: true };
+        loaded.stats = { ...loaded.stats, health: 5 };
+        console.log('[PomPom] Offline health floor applied — pet critical but alive');
+      }
+
       loaded = postProcessState(loaded);
     }
   }
