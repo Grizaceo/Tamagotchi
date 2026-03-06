@@ -127,7 +127,8 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       spriteRenderer = new SpriteRenderer(assetManager, species, config);
       spriteRenderer.displaySize = 128; // 1:1 with gridSize — no fractional scaling
       spriteRenderer.x = (320 - 128) / 2;
-      spriteRenderer.y = (240 - 128) / 2 + 10;
+      // Center sprite in the area below the stats bar (stats end at y≈78, display bottom y≈220)
+      spriteRenderer.y = Math.round((78 + 220 - 128) / 2); // = 85
     }
 
     // Update Animation State based on PetState
