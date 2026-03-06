@@ -22,3 +22,29 @@ coverage
 
 # misc
 *.local
+
+# Python
+.venv/
+scripts/__pycache__/
+
+# Dev artifacts
+dev_server.log
+
+# Local save files
+pompom-save-v3-*.json
+
+# Raw source asset directories (processed versions already in git)
+apps/web/public/Seal/
+apps/web/public/Sprites/
+apps/web/public/UI/
+apps/web/public/assets/sprites/seal/Egg/
+apps/web/public/assets/sprites/seal/TeenSeal/
+apps/web/public/assets/sprites/seal/adultfailseal/
+apps/web/public/assets/sprites/seal/adultleopardseal/
+apps/web/public/assets/sprites/seal/babyseal/
+apps/web/public/assets/sprites/seal/perfectseal/
+apps/web/public/assets/sprites/seal_*.png
+apps/web/public/assets/sprites/bagel_centered.png
+apps/web/public/assets/sprites/canon_extract_manifest.json
+apps/web/public/assets/sprites/flan_teen.png
+apps/web/public/assets/ui/source/
