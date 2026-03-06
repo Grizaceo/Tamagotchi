@@ -1,5 +1,5 @@
 export interface MinigameResult {
-  gameId: 'pudding' | 'memory' | 'snake';
+  gameId: 'pudding' | 'memory' | 'snake' | 'tetris';
   result: 'win' | 'perfect' | 'loss';
   score?: number;
 }
@@ -11,6 +11,7 @@ export interface SceneContext {
     ctx: CanvasRenderingContext2D;
     onSceneChange: (sceneName: string) => void;
     onGameComplete?: (result: MinigameResult) => void;
+    extra?: Record<string, unknown>;
 }
 
 export abstract class Scene {

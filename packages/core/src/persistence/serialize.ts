@@ -87,11 +87,13 @@ export function deserialize(data: SaveData): PetState {
         pudding: data.state.minigames?.lastPlayed?.pudding ?? -1000,
         memory: data.state.minigames?.lastPlayed?.memory ?? -1000,
         snake: (data.state.minigames?.lastPlayed as any)?.snake ?? -1000,
+        tetris: (data.state.minigames?.lastPlayed as any)?.tetris ?? -1000,
       },
       games: {
         pudding: data.state.minigames?.games?.pudding ?? { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
         memory: data.state.minigames?.games?.memory ?? { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
         snake: (data.state.minigames?.games as any)?.snake ?? { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+        tetris: (data.state.minigames?.games as any)?.tetris ?? { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
       },
     },
     settings: {

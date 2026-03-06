@@ -55,4 +55,8 @@ export class SceneManager {
     setOnGameComplete(handler: SceneContext['onGameComplete']) {
         this.context.onGameComplete = handler;
     }
+
+    setExtra(data: Record<string, unknown>) {
+        this.context.extra = data;
+    }
 }

@@ -15,6 +15,7 @@ import { SceneManager } from './SceneManager';
 import { MemoryGame } from './scenes/MemoryGame';
 import { PuddingGame } from './scenes/PuddingGame';
 import { SnakeGame } from './scenes/SnakeGame';
+import { TetrisGame } from './scenes/TetrisGame';
 import {
   ALBUM_PAGE_SIZE,
   BOTTOM_MENU,
@@ -58,6 +59,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   minigameManager.registerScene('pudding-game', PuddingGame);
   minigameManager.registerScene('memory-game', MemoryGame);
   minigameManager.registerScene('snake-game', SnakeGame);
+  minigameManager.registerScene('tetris-game', TetrisGame);
 
   let petState = loadState(petLinePreference);
   let uiState = createInitialUiState();
@@ -346,6 +348,9 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
           } else if (command === 'ENTER') {
             const selected = MINIGAMES[uiState.minigameIndex];
             uiState.minigameMode = 'playing';
+            const gameId = selected.id as keyof typeof petState.minigames.games;
+            const gameStats = petState.minigames.games[gameId];
+            minigameManager.setExtra({ bestScore: gameStats?.bestScore ?? 0 });
             minigameManager.switchScene(selected.scene);
           } else if (command === 'BACK') {
             openScene('Home');
