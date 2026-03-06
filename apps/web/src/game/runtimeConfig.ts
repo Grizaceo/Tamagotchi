@@ -6,6 +6,7 @@ const TRUE_FLAGS = new Set(['1', 'true', 'yes', 'on']);
 const UNREGISTER_SW_FLAGS = new Set(['0', 'false', 'off', 'unregister']);
 
 export function shouldForceReset(search: string): boolean {
+  if (!import.meta.env.DEV) return false; // dev-only: prevents malicious reset links in production
   const params = new URLSearchParams(search);
   if (!params.has('reset')) return false;
 
