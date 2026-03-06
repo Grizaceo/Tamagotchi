@@ -74,6 +74,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   let SPRITE_CONFIGS: any;
   let uiRenderer: any = null;
   let SpriteRenderer: any;
+  let assetsReady = false;
 
   Promise.all([
     import('./renderer/SpriteRenderer'),
@@ -107,7 +108,8 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
         console.log(`[PomPom] Sprites: ${loaded}/${results.length} loaded`);
       });
     }).then(() => {
-      // Create the initial sprite renderer now that assets are loaded
+      // Mark assets ready and create initial sprite renderer
+      assetsReady = true;
       updateSpriteRenderer(petState);
     });
   }).catch((e) => {
@@ -123,9 +125,9 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     if (!spriteRenderer || spriteRenderer.assetKey !== species) {
       console.log(`[PomPom Debug] Creating new SpriteRenderer for ${species}`);
       spriteRenderer = new SpriteRenderer(assetManager, species, config);
-      spriteRenderer.displaySize = 96; // Render at 96px on 320×240 canvas
-      spriteRenderer.x = (320 - 96) / 2;
-      spriteRenderer.y = (240 - 96) / 2 + 10; // A bit lower than center
+      spriteRenderer.displaySize = 128; // 1:1 with gridSize — no fractional scaling
+      spriteRenderer.x = (320 - 128) / 2;
+      spriteRenderer.y = (240 - 128) / 2 + 10;
     }
 
     // Update Animation State based on PetState
@@ -185,8 +187,8 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       minigameManager.draw();
     }
 
-    // Update Sprite System — create or update sprite renderer once assets are loaded
-    if (SPRITE_CONFIGS && SpriteRenderer) {
+    // Update Sprite System — only once assets are fully loaded
+    if (assetsReady) {
       updateSpriteRenderer(petState);
       if (spriteRenderer) {
         spriteRenderer.update(delta);

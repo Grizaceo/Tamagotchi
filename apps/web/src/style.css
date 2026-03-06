@@ -28,11 +28,11 @@
   padding: 0;
 }
 
-/* Prevent overflow-visible warnings/regressions on replaced elements. */
+/* Prevent overflow-visible warnings on replaced elements (Chrome WICG). */
 img,
 video,
 canvas {
-  overflow: hidden;
+  overflow: clip;
 }
 
 body {
@@ -73,7 +73,8 @@ body {
 /* ── Screen (canvas) ── */
 
 #screen {
-  width: min(88vw, 640px);
+  /* 2× native resolution — integer multiple avoids blur. */
+  width: 640px;
   height: auto;
   aspect-ratio: 4 / 3;
   border-radius: 12px;
@@ -195,7 +196,7 @@ body {
   }
 
   #screen {
-    width: 92vw;
+    width: 320px; /* 1x native on small screens — stays crisp. */
     border-radius: 8px;
     border-width: 2px;
   }
