@@ -55,9 +55,9 @@ export function tick(state: PetState, tickCount: number = 1, mutate: boolean = f
  */
 function getDegradationRate(difficulty: string, stat: 'hunger' | 'happiness' | 'energy'): number {
   const baseRates = {
-    hunger: 0.05,     // ~23 min to reach "Hungry" from 0
-    happiness: 0.03,  // ~27 min to reach "Sad" from 80
-    energy: 0.01,     // Very slow drain
+    hunger: 0.08,     // ~15 min to reach 80 from 0 (at 1x)
+    happiness: 0.06,  // ~22 min to reach 0 from 80 (at 1x)
+    energy: 0.03,     // ~55 min to reach 0 from 100
   };
 
   const multipliers = {

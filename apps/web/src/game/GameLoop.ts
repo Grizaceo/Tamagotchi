@@ -392,70 +392,71 @@ function loadState(petLinePreference?: PetLine): PetState {
     console.log('[PomPom] No save found, starting fresh:', fresh.species, 'health:', fresh.stats.health);
     return fresh;
   }
+
+  // Extract lastSaved to calculate offline time
+  let lastSaved: number | undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    lastSaved = parsed.lastSaved;
+  } catch (e) {
+    console.warn('[PomPom] Failed to parse lastSaved from raw save');
+  }
+
   let loaded = deserializeFromJSON(raw);
   console.log('[PomPom] Loaded save:', loaded.species, 'health:', loaded.stats.health, 'alive:', loaded.alive, 'ticks:', loaded.totalTicks);
 
-  // ── Welcome-back recovery ──
-  // When the player returns after being offline, apply a gentle recovery
-  // so the pet isn't permanently stuck in a sick/dying state.
+  // ── Catch-up Offline Ticks ──
+  if (lastSaved && !loaded.settings.paused && loaded.alive) {
+    const now = Date.now();
+    const diffSeconds = Math.floor((now - lastSaved) / 1000);
+
+    // Apply catch-up if more than 30 seconds passed
+    if (diffSeconds > 30) {
+      // Limit to 12 hours of offline time to avoid extreme cases
+      const maxOfflineSeconds = 12 * 3600;
+      const secondsToApply = Math.min(diffSeconds, maxOfflineSeconds);
+
+      console.log(`[PomPom] Catching up ${secondsToApply} seconds of offline time...`);
+      // We use tick with large count for efficiency.
+      // For more accuracy on death during offline, we could loop, but tick is decent.
+      loaded = tick(loaded, secondsToApply);
+      loaded = postProcessState(loaded);
+    }
+  }
+
+  // ── Welcome-back recovery (Less aggressive) ──
+  // Only apply if the pet is alive but in very bad shape
   loaded = applyWelcomeBackRecovery(loaded);
 
   return loaded;
 }
 
 /**
- * Aplica recuperación de "bienvenida" al cargar el estado guardado.
- * Si la mascota estaba descuidada (hambre alta, salud baja), se recupera
- * parcialmente para que el jugador no la encuentre siempre enferma.
- * Simula que la mascota "descansó" mientras el jugador no estaba.
+ * Aplica una recuperación leve al volver tras mucho tiempo,
+ * pero SIN revivir automáticamente ni borrar todo rastro de degradación.
  */
 function applyWelcomeBackRecovery(state: PetState): PetState {
-  // Si la mascota murió por descuido, revivirla con stats bajos pero viables
+  // Si está muerto, se queda muerto. El jugador debe ver el Game Over.
   if (!state.alive) {
-    console.log('[PomPom] Pet was dead — reviving with low but viable stats');
-    state = structuredClone(state);
-    state.alive = true;
-    state.stats.health = 100;
-    state.stats.hunger = 40;   // somewhat hungry but not critical
-    state.stats.happiness = 30;
-    state.stats.energy = 50;
     return state;
   }
 
-  const needsRecovery =
-    state.stats.health < 40 ||
-    state.stats.hunger > 70 ||
-    state.stats.happiness < 20;
+  // Solo aplicar si los stats están en niveles críticos
+  const isCritical =
+    state.stats.health < 20 ||
+    state.stats.hunger > 90 ||
+    state.stats.happiness < 10;
 
-  if (!needsRecovery) {
+  if (!isCritical) {
     return state;
   }
 
-  console.log('[PomPom] Applying welcome-back recovery — pet was in bad shape');
+  console.log('[PomPom] Applying mild welcome-back recovery for critical state');
   state = structuredClone(state);
 
-  // Reduce hunger (the pet "rested" and digested while offline)
-  if (state.stats.hunger > 40) {
-    state.stats.hunger = Math.max(40, state.stats.hunger - 30);
-  }
-
-  // Recover health partially - bump to 50 to avoid immediate sick loop
-  if (state.stats.health < 50) {
-    state.stats.health = Math.min(100, Math.max(80, state.stats.health + 40));
-  }
-
-  // Bump happiness a bit
-  if (state.stats.happiness < 30) {
-    state.stats.happiness = Math.min(100, state.stats.happiness + 30);
-  }
-
-  // Recover energy
-  if (state.stats.energy < 30) {
-    state.stats.energy = Math.min(100, state.stats.energy + 30);
-  }
-
-  console.log('[PomPom] After recovery — health:', state.stats.health,
-    'hunger:', state.stats.hunger, 'happiness:', state.stats.happiness);
+  // Recovery is now very slight, just enough to give a chance to react
+  if (state.stats.health < 30) state.stats.health = 30;
+  if (state.stats.hunger > 85) state.stats.hunger = 85;
 
   return state;
 }

@@ -1,70 +1,33 @@
-# Sistema de Evolución - Pompom Tama
+# Evolution System - PomPom Tama (Flan & Seal)
 
-## Resumen
+Determinista: mismas acciones ⇒ mismo resultado. Cada línea de mascota tiene su cadena de etapas y condiciones finales.
 
-El Tamagotchi evoluciona a una de cuatro formas finales basándose en el **cuidado recibido**. El sistema es **determinista**: misma secuencia de acciones = mismo resultado.
+## Líneas disponibles
+- **Flan/PomPomPurin**: huevo → FLAN_BEBE → FLAN_TEEN → adulto (BAGEL normal, POMPOMPURIN perfecto, SCONE fallido).
+- **Foca (Seal)**: huevo → SEAL_BABY → SEAL_TEEN → adulto (SEAL_PERFECT, SEAL_BROWN parda, SEAL_FAIL morza).
 
-## Reglas de Evolución
+## Flan / PomPomPurin
+- **Transiciones base**:  
+  - 60 ticks: FLAN_BEBE → FLAN_TEEN  
+  - 300 ticks: FLAN_TEEN → FLAN_ADULT  
+- **Adulto (evalúa desde 900–1200 ticks)**  
+  1. **POMPOMPURIN** (perfecto): `totalTicks ≥ 1200`, Happiness ≥ 85, Health ≥ 85, Hunger ≤ 25, Energy ≥ 65.  
+  2. **MUFFIN** (snack addict): `totalTicks ≥ 900`, Feeds ≥ 30, Plays ≤ 6, Health ≥ 45.  
+  3. **SCONE** (mecánico): `totalTicks ≥ 900`, PET ≤ 25% de acciones, Hunger ≤ 55, Health ≥ 35.  
+  4. **BAGEL** (normal/fallback): `totalTicks ≥ 900`, si nada más aplica.
 
-### 1. **POMPOMPURIN** - Cuidados Perfectos ⭐ (Prioridad máxima)
-- **Descripción**: La forma ideal de cuidado balanceado
-- **Requisitos**:
-  - Mínimo 3600 ticks (1 hora aprox)
-  - Felicidad ≥ 85
-  - Salud ≥ 85
-  - Hambre ≤ 30
-  - Energía ≥ 50
-- **Cómo lograrlo**: Mantén equilibrio. Alimenta cuando hambriento, juega regularmente, cura cuando sea necesario
+## Foca (Seal)
+- **Transiciones base**:  
+  - 60 ticks: SEAL_EGG → SEAL_BABY  
+  - 300 ticks: SEAL_BABY → SEAL_TEEN  
+- **Adulto (evalúa a partir de 900 ticks)**  
+  1. **SEAL_PERFECT**: Health ≥ 85, Happiness ≥ 80, Energy ≥ 50, Hunger ≤ 30.  
+  2. **SEAL_FAIL (morza)**: Health < 40 **o** Happiness < 30 **o** Hunger > 75.  
+  3. **SEAL_BROWN**: fallback por defecto.
 
-### 2. **MUFFIN** - Adicto a Bocadillos 🧁
-- **Descripción**: Muchos refrigerios, pocas actividades
-- **Requisitos**:
-  - Mínimo 2400 ticks (40 minutos)
-  - Máximo 200 alimentaciones
-  - Mínimo 5 jugadas
-  - Salud ≥ 50
-- **Cómo lograrlo**: Alimenta frecuentemente pero no excesivamente; no juegues mucho
+## Prioridad
+Se evalúa en orden en cada línea (1 es mayor prioridad).  
+- Flan: POMPOMPURIN → MUFFIN → SCONE → BAGEL.  
+- Foca: SEAL_PERFECT → SEAL_FAIL → SEAL_BROWN.  
 
-### 3. **BAGEL** - Sueño Irregular 😴
-- **Descripción**: Patrones de descanso erráticos
-- **Requisitos**:
-  - Mínimo 1800 ticks (30 minutos)
-  - Máximo 100 descansos (REST)
-  - Salud ≥ 40
-  - Felicidad ≥ 30
-- **Cómo lograrlo**: Deja dormir al pet irregularmente; no lo dejes descansar mucho
-
-### 4. **SCONE** - Cuidado Mecánico 🧹
-- **Descripción**: Limpieza alta pero bajo afecto
-- **Requisitos**:
-  - Mínimo 2400 ticks
-  - Acaricias (PET) ≥ 70% de acciones totales
-  - Felicidad ≥ 0 (puede estar triste)
-  - Hambre ≤ 50
-- **Cómo lograrlo**: Acaricia mucho, pero mantén pocas otras acciones
-
-## Sistema de Prioridades
-
-Si el pet cumple múltiples condiciones, evoluciona a:
-
-```
-1. POMPOMPURIN (Prioridad 1)
-2. BAGEL      (Prioridad 2)
-3. MUFFIN     (Prioridad 3)
-4. SCONE      (Prioridad 4)
-```
-
-**Ejemplo**: Si cumples condiciones de MUFFIN y SCONE, evolucionarás a MUFFIN.
-
-## Evolución Técnica
-
-```typescript
-import { evaluateEvolution, applyEvolutionIfNeeded } from '@pompom/core';
-
-const newSpecies = evaluateEvolution(state);  // Retorna especies o undefined
-const evolvedState = applyEvolutionIfNeeded(state);  // Aplica automáticamente
-```
-
-- **Determinista**: Solo usa el estado actual, sin RNG
-- **Sin efectos secundarios**: Las funciones son puras
-- **Eventos**: Se registra EVOLVED en el historial
+Usa `evaluateEvolution(state)` para chequear; `applyEvolutionIfNeeded(state)` aplica y registra el evento EVOLVED.

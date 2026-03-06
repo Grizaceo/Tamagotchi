@@ -80,6 +80,39 @@ describe('persistence', () => {
     expect(recovered.stats.happiness).toBe(0); // Clampea a mínimo
   });
 
+  it('aplica defaults de settings cuando faltan en un save legado', () => {
+    const json = JSON.stringify({
+      version: 1,
+      createdAt: Date.now(),
+      lastSaved: Date.now(),
+      totalTicks: 42,
+      state: {
+        species: 'FLAN_ADULT',
+        stats: {
+          hunger: 20,
+          happiness: 40,
+          energy: 60,
+          health: 80,
+          affection: 35,
+        },
+        alive: true,
+      },
+      history: [],
+      // settings intentionally missing
+    });
+
+    const recovered = deserializeFromJSON(json);
+
+    expect(recovered.species).toBe('FLAN_ADULT');
+    expect(recovered.totalTicks).toBe(42);
+    expect(recovered.settings.difficulty).toBe('normal');
+    expect(recovered.settings.soundEnabled).toBe(true);
+    expect(recovered.settings.animationsEnabled).toBe(true);
+    expect(recovered.settings.reducedMotion).toBe(false);
+    expect(recovered.settings.speed).toBe('1x');
+    expect(recovered.settings.paused).toBe(false);
+  });
+
   it('serializa settings correctamente', () => {
     const state = createInitialPetState();
     state.settings.difficulty = 'hard';
