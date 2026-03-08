@@ -1,5 +1,6 @@
 import { Scene } from './Scene';
 import type { InputCommand } from '../Input';
+import { PALETTE } from '../palette';
 
 export class PuddingGame extends Scene {
     private pos = 0;
@@ -28,11 +29,11 @@ export class PuddingGame extends Scene {
 
     draw() {
         const { ctx, canvas } = this.context;
-        ctx.fillStyle = '#111';
+        ctx.fillStyle = PALETTE.screen;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#FFF';
-        ctx.font = '16px monospace';
+        ctx.fillStyle = PALETTE.ink;
+        ctx.font = '16px "Cascadia Mono", "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.fillText('CATCH THE PUDDING!', canvas.width / 2, 50);
 
@@ -42,28 +43,28 @@ export class PuddingGame extends Scene {
         const barY = 120;
         const barHeight = 20;
 
-        ctx.strokeStyle = '#555';
+        ctx.strokeStyle = PALETTE.bezel;
         ctx.strokeRect(barX, barY, barWidth, barHeight);
 
         // Target area (center)
-        ctx.fillStyle = '#0F0';
+        ctx.fillStyle = PALETTE.accent;
         const targetWidth = 40;
         ctx.fillRect(canvas.width / 2 - targetWidth / 2, barY, targetWidth, barHeight);
 
-        // Indicator
-        ctx.fillStyle = '#F0F';
+        // Indicator (dark silhouette)
+        ctx.fillStyle = PALETTE.ink;
         const indicatorX = barX + this.pos * barWidth;
         ctx.fillRect(indicatorX - 2, barY - 5, 4, barHeight + 10);
 
         if (this.gameState !== 'playing') {
-            ctx.fillStyle = this.gameState === 'won' ? '#0F0' : '#F00';
+            ctx.fillStyle = this.gameState === 'won' ? PALETTE.win : PALETTE.lose;
             ctx.fillText(this.resultMessage, canvas.width / 2, 180);
-            ctx.fillStyle = '#FFF';
-            ctx.font = '10px monospace';
+            ctx.fillStyle = PALETTE.ink;
+            ctx.font = '10px "Cascadia Mono", "Courier New", monospace';
             ctx.fillText('Press Enter to continue', canvas.width / 2, 210);
         } else {
-            ctx.fillStyle = '#AAA';
-            ctx.font = '10px monospace';
+            ctx.fillStyle = PALETTE.inkMuted;
+            ctx.font = '10px "Cascadia Mono", "Courier New", monospace';
             ctx.fillText('Press ENTER to catch!', canvas.width / 2, 210);
         }
     }
@@ -90,7 +91,7 @@ export class PuddingGame extends Scene {
                         result = 'loss';
                     }
                 }
-                
+
                 // Notify game completion with reward
                 if (this.context.onGameComplete) {
                     this.context.onGameComplete({ gameId: 'pudding', result });

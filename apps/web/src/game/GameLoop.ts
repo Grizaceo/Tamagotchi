@@ -162,9 +162,15 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     pendingSave = true;
   });
 
+  let fadeAlpha = 0;
+
   const loop = (now: number) => {
     const delta = now - lastTime;
     lastTime = now;
+
+    if (fadeAlpha > 0) {
+      fadeAlpha = Math.max(0, fadeAlpha - delta / 130);
+    }
 
     if (!petState.settings.paused) {
       const speedFactor = petState.settings.speed === '2x' ? 2 : 1;
@@ -204,6 +210,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       spriteRenderer, // Pass new renderer
       uiRenderer: uiRenderer || undefined,     // Pass new renderer
       assetManager,
+      fadeAlpha,
     });
 
     if (pendingSave && now - lastSaveAt > SAVE_INTERVAL_MS) {
@@ -268,6 +275,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   };
 
   const openScene = (scene: SceneId) => {
+    fadeAlpha = 1;
     uiState.scene = scene;
     if (scene === 'Minigames') {
       uiState.minigameMode = 'select';
@@ -371,11 +379,53 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   };
   window.addEventListener('beforeunload', beforeUnload);
 
+  // ── Visibilidad: protección contra suspend/resume del navegador ──
+  // Cuando el SO apaga la pantalla o suspende la pestaña, requestAnimationFrame
+  // se detiene. Al volver, el siguiente frame tiene un delta gigante (= tiempo
+  // que el dispositivo estuvo suspendido) que procesaría ticks sin el límite
+  // de salud offline. Este handler lo previene.
+  let hiddenAt = 0;
+  const onVisibilityChange = () => {
+    if (document.hidden) {
+      // Guardar inmediatamente para que lastSaved sea preciso
+      if (!isResetting) {
+        saveState(petState);
+        lastSaveAt = performance.now();
+      }
+      hiddenAt = Date.now();
+    } else {
+      // Resetear lastTime para que el siguiente frame no tenga un delta enorme
+      lastTime = performance.now();
+
+      // Aplicar ticks offline con 25% y health floor, igual que en loadState
+      if (hiddenAt > 0 && petState.alive && !petState.settings.paused) {
+        const diffSeconds = Math.floor((Date.now() - hiddenAt) / 1000);
+        if (diffSeconds > 30) {
+          const realSeconds = Math.min(diffSeconds, 12 * 3600);
+          const effectiveTicks = Math.round(realSeconds * 0.25);
+          console.log(`[PomPom] Resume after ${realSeconds}s → applying ${effectiveTicks} offline ticks`);
+          petState = tick(petState, effectiveTicks);
+          if (!petState.alive) {
+            petState = { ...petState, alive: true };
+            petState.stats = { ...petState.stats, health: 5 };
+            console.log('[PomPom] Visibility resume: offline health floor applied');
+          }
+          petState = postProcessState(petState);
+          petState = applyWelcomeBackRecovery(petState);
+          pendingSave = true;
+        }
+      }
+      hiddenAt = 0;
+    }
+  };
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
   rafId = requestAnimationFrame(loop);
 
   return () => {
     unbindInput();
     window.removeEventListener('beforeunload', beforeUnload);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
     cancelAnimationFrame(rafId);
   };
 }

@@ -4,18 +4,7 @@ import { ALBUM_PAGE_SIZE, CARE_ACTIONS, MINIGAMES, SETTINGS_ITEMS } from './Scen
 import type { UiState } from './Scenes';
 import type { AnimationState, SpriteRenderer, AssetManager } from './renderer/SpriteRenderer';
 import type { UIRenderer } from './renderer/UIRenderer';
-
-const PALETTE = {
-  frame: '#3a2f1f',
-  frameShadow: '#241b11',
-  bezel: '#4a3c28',
-  screen: '#c7d5b6',
-  screenShade: '#b7c8a1',
-  ink: '#2a2a22',
-  inkSoft: '#4c4b3d',
-  accent: '#c96b3b',
-  accentSoft: '#dfb07a',
-};
+import { PALETTE } from './palette';
 
 export function renderFrame(
   ctx: CanvasRenderingContext2D,
@@ -42,6 +31,18 @@ export function renderFrame(
   // 2. Main Scene
   const display = { x: 0, y: 20, w: width, h: height - 40 };
   drawScene(ctx, state, ui, display, now, options);
+
+  // 3. Scanlines LCD sutiles
+  ctx.fillStyle = 'rgba(0,0,0,0.04)';
+  for (let y = 0; y < height; y += 2) {
+    ctx.fillRect(0, y, width, 1);
+  }
+
+  // 4. Fade overlay (transición de escena)
+  if (options?.fadeAlpha && options.fadeAlpha > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${options.fadeAlpha})`;
+    ctx.fillRect(0, 0, width, height);
+  }
 }
 
 
@@ -320,7 +321,7 @@ function drawCompactStat(
 
   if (!labelDrawn) {
     ctx.fillStyle = PALETTE.inkSoft;
-    ctx.font = '6px "Cascadia Mono", "Courier New", monospace';
+    ctx.font = '8px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
     ctx.fillText(stat.label.substring(0, 3), centerX, barY + barH + 5);
     ctx.textAlign = 'left';
@@ -589,4 +590,5 @@ export type RenderOptions = {
   spriteRenderer?: SpriteRenderer;
   uiRenderer?: UIRenderer;
   assetManager?: AssetManager;
+  fadeAlpha?: number;
 };

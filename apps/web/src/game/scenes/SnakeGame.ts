@@ -1,5 +1,6 @@
 import { Scene } from './Scene';
 import type { InputCommand } from '../Input';
+import { PALETTE } from '../palette';
 
 const COLS = 20;
 const ROWS = 15;
@@ -121,16 +122,16 @@ export class SnakeGame extends Scene {
     const h = canvas.height;
 
     // Fondo
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = PALETTE.screen;
     ctx.fillRect(0, 0, w, h);
 
     // HUD superior
-    ctx.fillStyle = '#FFF';
-    ctx.font = '14px monospace';
+    ctx.fillStyle = PALETTE.ink;
+    ctx.font = '14px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('SNAKE', w / 2, 18);
     ctx.textAlign = 'left';
-    ctx.font = '11px monospace';
+    ctx.font = '11px "Cascadia Mono", "Courier New", monospace';
     ctx.fillText(`Score: ${this.score}`, 8, 18);
     ctx.textAlign = 'right';
     ctx.fillText(`Win:${WIN_SCORE} Perf:${PERFECT_SCORE}`, w - 8, 18);
@@ -145,7 +146,7 @@ export class SnakeGame extends Scene {
     const offsetY = hudH;
 
     // Grilla tenue
-    ctx.strokeStyle = '#222';
+    ctx.strokeStyle = PALETTE.screenGrid;
     ctx.lineWidth = 0.5;
     for (let col = 0; col <= COLS; col++) {
       ctx.beginPath();
@@ -162,7 +163,7 @@ export class SnakeGame extends Scene {
 
     // Serpiente
     this.snake.forEach((seg, i) => {
-      ctx.fillStyle = i === 0 ? '#0F0' : '#0A0';
+      ctx.fillStyle = i === 0 ? PALETTE.snakeHead : PALETTE.snakeBody;
       ctx.fillRect(
         offsetX + seg.x * cellW + 1,
         offsetY + seg.y * cellH + 1,
@@ -172,7 +173,7 @@ export class SnakeGame extends Scene {
     });
 
     // Comida
-    ctx.fillStyle = '#F55';
+    ctx.fillStyle = PALETTE.food;
     ctx.fillRect(
       offsetX + this.food.x * cellW + 2,
       offsetY + this.food.y * cellH + 2,
@@ -182,12 +183,12 @@ export class SnakeGame extends Scene {
 
     // Pantalla de resultado
     if (this.gameState !== 'playing') {
-      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.fillRect(0, 0, w, h);
 
       const won = this.gameState === 'won';
-      ctx.fillStyle = won ? '#0F0' : '#F55';
-      ctx.font = '20px monospace';
+      ctx.fillStyle = won ? PALETTE.win : PALETTE.lose;
+      ctx.font = '20px "Cascadia Mono", "Courier New", monospace';
       ctx.textAlign = 'center';
 
       let msg: string;
@@ -196,14 +197,14 @@ export class SnakeGame extends Scene {
       else msg = 'GAME OVER';
 
       ctx.fillText(msg, w / 2, h / 2 - 10);
-      ctx.fillStyle = '#FFF';
-      ctx.font = '12px monospace';
+      ctx.fillStyle = PALETTE.screen;
+      ctx.font = '12px "Cascadia Mono", "Courier New", monospace';
       ctx.fillText(`Score: ${this.score}`, w / 2, h / 2 + 12);
-      ctx.font = '10px monospace';
+      ctx.font = '10px "Cascadia Mono", "Courier New", monospace';
       ctx.fillText('Press Enter to continue', w / 2, h / 2 + 32);
     } else {
-      ctx.fillStyle = '#555';
-      ctx.font = '9px monospace';
+      ctx.fillStyle = PALETTE.inkMuted;
+      ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
       ctx.textAlign = 'center';
       ctx.fillText('Arrows=Dir  Enter=Exit', w / 2, h - 4);
     }

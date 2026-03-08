@@ -1,5 +1,6 @@
 import { Scene } from './Scene';
 import type { InputCommand } from '../Input';
+import { PALETTE } from '../palette';
 
 const COLS = 10;
 const ROWS = 18;
@@ -47,16 +48,7 @@ const PIECES: PieceDef[] = [
   { color: 7, boxSize: 3, cells: makeRotations([[2,0],[0,1],[1,1],[2,1]], 3) },
 ];
 
-const PIECE_COLORS = [
-  '',          // 0 = empty
-  '#00F5FF',  // 1 = I (cyan)
-  '#FFD700',  // 2 = O (yellow)
-  '#9B59B6',  // 3 = T (purple)
-  '#2ECC71',  // 4 = S (green)
-  '#E74C3C',  // 5 = Z (red)
-  '#3498DB',  // 6 = J (blue)
-  '#E67E22',  // 7 = L (orange)
-];
+const PIECE_COLORS = PALETTE.tetris;
 
 interface Piece {
   typeIdx: number;
@@ -193,23 +185,23 @@ export class TetrisGame extends Scene {
     const h = canvas.height;
 
     // Background
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = PALETTE.screen;
     ctx.fillRect(0, 0, w, h);
 
     // HUD
     const bestScore = (this.context.extra?.bestScore as number | undefined) ?? 0;
-    ctx.fillStyle = '#FFF';
-    ctx.font = '14px monospace';
+    ctx.fillStyle = PALETTE.ink;
+    ctx.font = '14px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('TETRIS', w / 2, 16);
     ctx.textAlign = 'left';
-    ctx.font = '10px monospace';
+    ctx.font = '10px "Cascadia Mono", "Courier New", monospace';
     ctx.fillText(`Lines: ${this.linesCleared}`, 4, 16);
     ctx.textAlign = 'right';
     ctx.fillText(`Best:${bestScore}`, w - 4, 16);
 
     // Board border
-    ctx.strokeStyle = '#555';
+    ctx.strokeStyle = PALETTE.bezel;
     ctx.lineWidth = 1;
     ctx.strokeRect(BOARD_X - 1, BOARD_Y - 1, COLS * CELL + 2, ROWS * CELL + 2);
 
@@ -221,7 +213,7 @@ export class TetrisGame extends Scene {
           ctx.fillStyle = PIECE_COLORS[color];
           ctx.fillRect(BOARD_X + c * CELL + 1, BOARD_Y + r * CELL + 1, CELL - 2, CELL - 2);
         } else {
-          ctx.fillStyle = '#1A1A1A';
+          ctx.fillStyle = PALETTE.screenCell;
           ctx.fillRect(BOARD_X + c * CELL, BOARD_Y + r * CELL, CELL, CELL);
         }
       }
@@ -235,7 +227,7 @@ export class TetrisGame extends Scene {
       let ghostDy = 0;
       while (canPlace(this.board, this.current, 0, ghostDy + 1)) ghostDy++;
       if (ghostDy > 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillStyle = 'rgba(42,42,34,0.18)';
         for (const [c, r] of def.cells[this.current.rotation]) {
           const pr = this.current.y + r + ghostDy;
           const pc = this.current.x + c;
@@ -258,8 +250,8 @@ export class TetrisGame extends Scene {
 
     // Right panel — next piece preview
     const panelX = BOARD_X + COLS * CELL + 10;
-    ctx.fillStyle = '#AAA';
-    ctx.font = '9px monospace';
+    ctx.fillStyle = PALETTE.inkMuted;
+    ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'left';
     ctx.fillText('NEXT', panelX, BOARD_Y + 10);
 
@@ -270,8 +262,8 @@ export class TetrisGame extends Scene {
     }
 
     // Controls hint
-    ctx.fillStyle = '#555';
-    ctx.font = '8px monospace';
+    ctx.fillStyle = PALETTE.inkMuted;
+    ctx.font = '8px "Cascadia Mono", "Courier New", monospace';
     ctx.fillText('\u2190\u2192Move', panelX, BOARD_Y + 70);
     ctx.fillText('\u2191Rot', panelX, BOARD_Y + 82);
     ctx.fillText('\u2193Drop', panelX, BOARD_Y + 94);
@@ -279,12 +271,12 @@ export class TetrisGame extends Scene {
 
     // Result overlay
     if (this.gameState !== 'playing') {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillStyle = 'rgba(0,0,0,0.60)';
       ctx.fillRect(0, 0, w, h);
 
       const won = this.gameState === 'won';
-      ctx.fillStyle = won ? '#0F0' : '#F55';
-      ctx.font = '20px monospace';
+      ctx.fillStyle = won ? PALETTE.win : PALETTE.lose;
+      ctx.font = '20px "Cascadia Mono", "Courier New", monospace';
       ctx.textAlign = 'center';
 
       let msg: string;
@@ -293,18 +285,18 @@ export class TetrisGame extends Scene {
       else msg = 'GAME OVER';
 
       ctx.fillText(msg, w / 2, h / 2 - 10);
-      ctx.fillStyle = '#FFF';
-      ctx.font = '12px monospace';
+      ctx.fillStyle = PALETTE.screen;
+      ctx.font = '12px "Cascadia Mono", "Courier New", monospace';
       ctx.fillText(`Lines: ${this.linesCleared}`, w / 2, h / 2 + 10);
       if (this.linesCleared > bestScore) {
-        ctx.fillStyle = '#FFD700';
+        ctx.fillStyle = PALETTE.accentSoft;
         ctx.fillText('New Best!', w / 2, h / 2 + 26);
-        ctx.fillStyle = '#FFF';
-        ctx.font = '10px monospace';
+        ctx.fillStyle = PALETTE.screen;
+        ctx.font = '10px "Cascadia Mono", "Courier New", monospace';
         ctx.fillText('Press Enter to continue', w / 2, h / 2 + 42);
       } else {
-        ctx.fillStyle = '#AAA';
-        ctx.font = '10px monospace';
+        ctx.fillStyle = PALETTE.screenShade;
+        ctx.font = '10px "Cascadia Mono", "Courier New", monospace';
         ctx.fillText(`Best: ${bestScore}`, w / 2, h / 2 + 26);
         ctx.fillText('Press Enter to continue', w / 2, h / 2 + 40);
       }

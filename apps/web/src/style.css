@@ -356,10 +356,10 @@ body {
   transform: scale(1.03);
 }
 
-/* ── Desktop: hide controls if keyboard available ── */
+/* ── Desktop: controles visibles, se iluminan al hover ── */
 @media (hover: hover) and (pointer: fine) {
   #controls {
-    opacity: 0.3;
+    opacity: 0.55;
     transition: opacity 0.3s ease;
   }
 
