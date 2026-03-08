@@ -127,6 +127,21 @@ describe('TetrisGame', () => {
     expect(typeof result.score).toBe('number');
   });
 
+  it('arcade: no auto-termina al limpiar PERFECT_LINES líneas', () => {
+    const arcadeCtx = makeContext();
+    arcadeCtx.extra = { arcade: true };
+    const arcadeGame = new TetrisGame(arcadeCtx);
+    arcadeGame.init();
+    // Mock clearLines para que devuelva 1 sin modificar el board
+    vi.spyOn(arcadeGame as any, 'clearLines').mockReturnValue(1);
+    // Situar linesCleared en 7 (PERFECT_LINES - 1 = 8 - 1)
+    (arcadeGame as any).linesCleared = 7;
+    // Hard drop → lockPiece → clearLines mock devuelve 1 → linesCleared=8
+    // En modo normal terminaría aquí; en arcade el juego sigue
+    arcadeGame.handleInput('ENTER');
+    expect(arcadeCtx.completedResults.length).toBe(0);
+  });
+
   it('no emite resultado dos veces en la misma partida', () => {
     game.handleInput('BACK');
     game.handleInput('BACK'); // segunda vez — ya terminó

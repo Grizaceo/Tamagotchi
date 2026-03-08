@@ -44,11 +44,13 @@ export const SETTINGS_ITEMS = [
 
 export const ALBUM_PAGE_SIZE = 4;
 
-export const MINIGAMES = [
+export const MINIGAMES: Array<{ id: string; label: string; scene: string; extra?: Record<string, unknown> }> = [
   { id: 'pudding', label: 'Pudding Catch', scene: 'pudding-game' },
   { id: 'memory', label: 'Memory 2x2', scene: 'memory-game' },
   { id: 'snake', label: 'Snake', scene: 'snake-game' },
+  { id: 'snake', label: 'Snake∞', scene: 'snake-game', extra: { arcade: true } },
   { id: 'tetris', label: 'Tetris', scene: 'tetris-game' },
+  { id: 'tetris', label: 'Tetris∞', scene: 'tetris-game', extra: { arcade: true } },
 ];
 
 export function createInitialUiState(): UiState {

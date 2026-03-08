@@ -88,7 +88,7 @@ export class SnakeGame extends Scene {
     this.snake.unshift(newHead);
     if (ateFood) {
       this.score++;
-      if (this.score >= PERFECT_SCORE) {
+      if (this.score >= PERFECT_SCORE && !this.context.extra?.arcade) {
         this.endGame('won');
         return;
       }

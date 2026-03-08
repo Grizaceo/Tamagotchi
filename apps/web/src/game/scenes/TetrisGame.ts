@@ -135,7 +135,7 @@ export class TetrisGame extends Scene {
     const cleared = this.clearLines();
     this.linesCleared += cleared;
 
-    if (this.linesCleared >= PERFECT_LINES) {
+    if (this.linesCleared >= PERFECT_LINES && !this.context.extra?.arcade) {
       this.endGame('won');
       return;
     }

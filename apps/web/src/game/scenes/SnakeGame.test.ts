@@ -161,6 +161,22 @@ describe('SnakeGame', () => {
     expect(localCtx.onSceneChange).toHaveBeenCalledWith('select');
   });
 
+  it('arcade: no auto-termina al llegar a PERFECT_SCORE', () => {
+    // Con extra.arcade=true, superar 15 comidas no cierra el juego
+    const spy = makeFoodRowMock();
+    const arcadeCtx = makeContext();
+    arcadeCtx.extra = { arcade: true };
+    const arcadeGame = new SnakeGame(arcadeCtx);
+    arcadeGame.init(); // food en (0,7); serpiente en (10,7) yendo derecha
+    // 25 ticks: la serpiente llega a (0,7) en 10 ticks, luego come (1,7),(2,7)... cada tick
+    // En tick ~24 habrá comido 15 items (PERFECT_SCORE). En modo normal terminaría; en arcade sigue.
+    for (let i = 0; i < 25; i++) {
+      arcadeGame.update(200);
+    }
+    spy.mockRestore();
+    expect(arcadeCtx.completedResults.length).toBe(0); // sigue jugando
+  });
+
   it('BACK durante juego llama onSceneChange("select")', () => {
     game.handleInput('BACK');
     expect(context.onSceneChange).toHaveBeenCalledWith('select');

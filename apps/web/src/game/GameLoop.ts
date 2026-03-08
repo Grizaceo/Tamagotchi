@@ -358,7 +358,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
             uiState.minigameMode = 'playing';
             const gameId = selected.id as keyof typeof petState.minigames.games;
             const gameStats = petState.minigames.games[gameId];
-            minigameManager.setExtra({ bestScore: gameStats?.bestScore ?? 0 });
+            minigameManager.setExtra({ bestScore: gameStats?.bestScore ?? 0, ...(selected.extra ?? {}) });
             minigameManager.switchScene(selected.scene);
           } else if (command === 'BACK') {
             openScene('Home');
