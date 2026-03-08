@@ -74,11 +74,9 @@ export class SnakeGame extends Scene {
       y: head.y + this.dir.y,
     };
 
-    // Colisión con muro
-    if (newHead.x < 0 || newHead.x >= COLS || newHead.y < 0 || newHead.y >= ROWS) {
-      this.endGame(this.score >= WIN_SCORE ? 'won' : 'lost');
-      return;
-    }
+    // Wrap-around toroidal (Pac-Man style)
+    newHead.x = ((newHead.x % COLS) + COLS) % COLS;
+    newHead.y = ((newHead.y % ROWS) + ROWS) % ROWS;
 
     // Colisión consigo misma
     if (this.snake.some(s => s.x === newHead.x && s.y === newHead.y)) {

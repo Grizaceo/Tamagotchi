@@ -31,6 +31,23 @@ function makeContext(): SceneContext & { completedResults: any[] } {
   return Object.assign(sceneCtx, { completedResults });
 }
 
+/**
+ * Fuerza que la food se coloque siempre en la fila y=7 con x ciclando 0,1,2,...19.
+ * La serpiente empieza en (10,7) yendo a la derecha, así que siempre comerá la food.
+ * Devuelve el spy — llamar spy.mockRestore() al terminar.
+ */
+function makeFoodRowMock() {
+  let callIdx = 0;
+  return vi.spyOn(Math, 'random').mockImplementation(() => {
+    const isX = callIdx % 2 === 0;
+    const val = isX
+      ? (Math.floor(callIdx / 2) % 20) / 20  // x: 0/20, 1/20, ..., 19/20, 0/20, ...
+      : 7 / 15;                                // y: siempre fila 7
+    callIdx++;
+    return val;
+  });
+}
+
 describe('SnakeGame', () => {
   let context: ReturnType<typeof makeContext>;
   let game: SnakeGame;
@@ -42,23 +59,16 @@ describe('SnakeGame', () => {
   });
 
   it('inicia con serpiente de 3 segmentos y score 0', () => {
-    // El juego debe inicializar sin errores
     expect(() => game.draw()).not.toThrow();
   });
 
   it('avanza la serpiente al acumular ticks suficientes', () => {
-    // Capturamos el estado visual antes y después
-    // No colisionará porque empieza en el centro
     expect(() => game.update(200)).not.toThrow(); // 200ms > 1000/6 ≈ 167ms
   });
 
   it('no permite reversal directo de dirección', () => {
-    // Serpiente va a la derecha por defecto, no puede ir a izquierda directamente
     game.handleInput('LEFT');
-    // Avanzar un tick para aplicar dirección
     game.update(200);
-    // El juego no debe terminar ni colisionar por reversal
-    // (la lógica isOpposite debe ignorar la izquierda)
     expect(() => game.draw()).not.toThrow();
   });
 
@@ -71,29 +81,37 @@ describe('SnakeGame', () => {
     expect(() => game.update(200)).not.toThrow();
   });
 
-  it('colisión con muro termina el juego y emite resultado', () => {
+  it('wrap-around: el snake no muere al cruzar el borde derecho', () => {
     // La serpiente empieza en (10,7) yendo a la derecha.
-    // El muro derecho está en x=20. En ~10 ticks habrá colisión (sin food en el camino).
-    // Si come comida en el trayecto, el resultado puede ser win; si no, loss.
-    for (let i = 0; i < 25; i++) {
-      game.update(200); // cada llamada avanza 1 tick
+    // En 10 ticks llega a x=20 → debe aparecer en x=0 sin morir.
+    // Ir hacia la derecha nunca puede causar auto-colisión en 10 pasos.
+    for (let i = 0; i < 10; i++) {
+      game.update(200);
     }
-    expect(context.completedResults.length).toBe(1);
-    expect(['win', 'perfect', 'loss']).toContain(context.completedResults[0].result);
-    expect(context.completedResults[0].gameId).toBe('snake');
+    expect(context.completedResults.length).toBe(0); // sigue viva
+  });
+
+  it('el juego termina eventualmente y emite resultado', () => {
+    // Mockear food en fila 7 para que la serpiente siempre la coma y gane.
+    const spy = makeFoodRowMock();
+    const localCtx = makeContext();
+    const localGame = new SnakeGame(localCtx);
+    localGame.init();
+    for (let i = 0; i < 50; i++) {
+      localGame.update(200);
+      if (localCtx.completedResults.length > 0) break;
+    }
+    spy.mockRestore();
+    expect(localCtx.completedResults.length).toBe(1);
+    expect(['win', 'perfect', 'loss']).toContain(localCtx.completedResults[0].result);
+    expect(localCtx.completedResults[0].gameId).toBe('snake');
   });
 
   it('morir sin comida produce loss', () => {
-    // Forzar que la food esté lejos del camino: re-seeding no es posible,
-    // pero podemos verificar que si la serpiente choca sin haber comido, result=loss.
-    // Usar una partida limpia donde el score sigue en 0 al chocar
     const localCtx = makeContext();
     const localGame = new SnakeGame(localCtx);
     localGame.init();
 
-    // Agotar food aleatoria reemplazando via re-init hasta tener un juego que choque sin comer.
-    // En lugar de depender de aleatoriedad, verificamos la regla: score<WIN_SCORE → loss
-    // Simulamos internamente: si completa sin resultados en 15 ticks, al menos se emitió algo.
     for (let i = 0; i < 15; i++) {
       localGame.update(200);
       if (localCtx.completedResults.length > 0) break;
@@ -110,31 +128,37 @@ describe('SnakeGame', () => {
   });
 
   it('el score sube al comer comida', () => {
-    // Este test verifica la lógica de negocio sin depender de aleatoriedad.
-    // Reiniciamos el juego y hacemos que la comida esté garantizada cerca
-    // verificando que onGameComplete se llama con score > 0 al ganar.
-    // Como la comida es aleatoria, hacemos muchas iteraciones hasta ganar o morir
-    for (let i = 0; i < 500; i++) {
-      game.update(200);
-      if (context.completedResults.length > 0) break;
+    // Mockear food en fila 7 para que la serpiente siempre la coma y gane.
+    const spy = makeFoodRowMock();
+    const localCtx = makeContext();
+    const localGame = new SnakeGame(localCtx);
+    localGame.init();
+    for (let i = 0; i < 50; i++) {
+      localGame.update(200);
+      if (localCtx.completedResults.length > 0) break;
     }
-    // Al terminar siempre hay un resultado
-    expect(context.completedResults.length).toBe(1);
-    const result = context.completedResults[0];
+    spy.mockRestore();
+    expect(localCtx.completedResults.length).toBe(1);
+    const result = localCtx.completedResults[0];
     expect(['win', 'perfect', 'loss']).toContain(result.result);
     expect(typeof result.score).toBe('number');
+    expect(result.score).toBeGreaterThan(0);
   });
 
   it('ENTER en pantalla de resultado llama onSceneChange("select")', () => {
-    // Forzar fin de juego
-    for (let i = 0; i < 25; i++) {
-      game.update(200);
+    const spy = makeFoodRowMock();
+    const localCtx = makeContext();
+    const localGame = new SnakeGame(localCtx);
+    localGame.init();
+    for (let i = 0; i < 50; i++) {
+      localGame.update(200);
+      if (localCtx.completedResults.length > 0) break;
     }
-    expect(context.completedResults.length).toBe(1);
+    spy.mockRestore();
+    expect(localCtx.completedResults.length).toBe(1);
 
-    // Ahora presionar ENTER para salir
-    game.handleInput('ENTER');
-    expect(context.onSceneChange).toHaveBeenCalledWith('select');
+    localGame.handleInput('ENTER');
+    expect(localCtx.onSceneChange).toHaveBeenCalledWith('select');
   });
 
   it('BACK durante juego llama onSceneChange("select")', () => {
@@ -146,10 +170,16 @@ describe('SnakeGame', () => {
     expect(() => game.draw()).not.toThrow();
   });
 
-  it('draw no lanza errores en estado lost', () => {
-    for (let i = 0; i < 25; i++) {
-      game.update(200);
+  it('draw no lanza errores en estado terminado', () => {
+    const spy = makeFoodRowMock();
+    const localCtx = makeContext();
+    const localGame = new SnakeGame(localCtx);
+    localGame.init();
+    for (let i = 0; i < 50; i++) {
+      localGame.update(200);
+      if (localCtx.completedResults.length > 0) break;
     }
-    expect(() => game.draw()).not.toThrow();
+    spy.mockRestore();
+    expect(() => localGame.draw()).not.toThrow();
   });
 });
