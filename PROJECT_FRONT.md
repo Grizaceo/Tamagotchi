@@ -73,3 +73,9 @@ Si se retoma, empezaría por:
 
 ## Decisión actual
 **Conservar y pulir**.
+
+## Contexto relacionado
+- Docs de minijuegos: `docs/MINIGAMES_INTEGRATION.md`, `docs/MINIGAMES_USER_GUIDE.md`
+- Evolución: `docs/evolution.md`
+- Regalos: `docs/gifts.md`
+- ⚠️ La app ya está desplegada en el celular de Lin vía GitHub Actions
