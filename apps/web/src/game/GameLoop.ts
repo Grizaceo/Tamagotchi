@@ -72,6 +72,18 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   let rafId = 0;
   let isResetting = false;
 
+  // Oneshot action animations: prioridad sobre estado pasivo durante 1.5 segundos
+  const ACTION_ANIM_DURATION_MS = 1500;
+  const ACTION_TO_ANIM: Record<string, string> = {
+    FEED: 'eat',
+    PLAY: 'happy',
+    REST: 'sleep',
+    MEDICATE: 'happy',
+    PET: 'happy',
+  };
+  let lastActionAnim: string | null = null;
+  let lastActionAnimAt = 0;
+
   // --- Audio Engine ---
   const audio = createAudioEngine();
   audio.setEnabled(petState.settings.soundEnabled);
@@ -145,10 +157,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     const species = state.species;
     const config = SPRITE_CONFIGS[species] || SPRITE_CONFIGS['FLAN_BEBE']; // Fallback
 
-    console.log(`[PomPom Debug] updateSpriteRenderer: species=${species}, health=${state.stats.health}, alive=${state.alive}, usingConfigFor=${SPRITE_CONFIGS[species] ? species : 'FALLBACK(FLAN_BEBE)'}`);
-
     if (!spriteRenderer || spriteRenderer.assetKey !== species) {
-      console.log(`[PomPom Debug] Creating new SpriteRenderer for ${species}`);
       spriteRenderer = new SpriteRenderer(assetManager, species, config);
       spriteRenderer.displaySize = 128; // 1:1 with gridSize — no fractional scaling
       spriteRenderer.x = (320 - 128) / 2;
@@ -157,17 +166,19 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     }
 
     // Update Animation State based on PetState
-    // Priority: Dead > Sick > Sleep > Sad > Happy > Eat > Walk/Idle
+    // Priority: Dead > Sick > Action oneshot > Sad > Happy > Idle
     let anim = 'idle';
-    if (!state.alive) anim = 'dead';
-    else if (state.stats.health < 30) anim = 'sick';
-    else if (state.stats.happiness < 30) anim = 'sad';
-    else if (state.stats.happiness > 80) anim = 'happy';
-
-    // Check specific actions from history?
-    // For now, state-based.
-    // Ideally we listen to "ACtions" dispatched to trigger oneshot animations (eat).
-    // But for this step, basic state loop.
+    if (!state.alive) {
+      anim = 'dead';
+    } else if (state.stats.health < 30) {
+      anim = 'sick';
+    } else if (lastActionAnim && performance.now() - lastActionAnimAt < ACTION_ANIM_DURATION_MS) {
+      anim = lastActionAnim;
+    } else if (state.stats.happiness < 30) {
+      anim = 'sad';
+    } else if (state.stats.happiness > 80) {
+      anim = 'happy';
+    }
 
     spriteRenderer.setAnimation(anim);
   }
@@ -276,6 +287,8 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     petState = postProcessState(petState);
     pendingSave = true;
     audio.play(soundType);
+    lastActionAnim = ACTION_TO_ANIM[type] ?? null;
+    lastActionAnimAt = performance.now();
   };
 
   const toggleSetting = (id: string) => {
