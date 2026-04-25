@@ -1,6 +1,15 @@
 import type { PetState } from '../model/PetState';
 import { clampStat } from '../model/Stats';
 import { createEvent } from '../model/Events';
+import {
+  CLAMP_MAX,
+  DEGRADATION_BASE,
+  DIFFICULTY_MULTIPLIERS,
+  HUNGER_HEALTH_DAMAGE_THRESHOLD,
+  HUNGER_HEALTH_DAMAGE_FACTOR,
+  HEALTH_REGEN_HUNGER_THRESHOLD,
+  HEALTH_REGEN_PER_TICK,
+} from '../balance/constants';
 
 /**
  * Aplica un tick al estado (degradación de stats)
@@ -31,14 +40,14 @@ export function tick(state: PetState, tickCount: number = 1, mutate: boolean = f
   newState.stats.energy = clampStat(newState.stats.energy - energyDegradation * tickCount);
 
   // Si el hambre es muy alto, la salud sufre
-  if (newState.stats.hunger > 80) {
-    const healthDamage = (newState.stats.hunger - 80) * 0.005 * tickCount;
+  if (newState.stats.hunger > HUNGER_HEALTH_DAMAGE_THRESHOLD) {
+    const healthDamage = (newState.stats.hunger - HUNGER_HEALTH_DAMAGE_THRESHOLD) * HUNGER_HEALTH_DAMAGE_FACTOR * tickCount;
     newState.stats.health = clampStat(newState.stats.health - healthDamage);
   }
 
   // Recuperación natural de salud si está bien alimentado
-  if (newState.stats.hunger < 50 && newState.stats.health < 100) {
-    newState.stats.health = clampStat(newState.stats.health + 0.02 * tickCount);
+  if (newState.stats.hunger < HEALTH_REGEN_HUNGER_THRESHOLD && newState.stats.health < CLAMP_MAX) {
+    newState.stats.health = clampStat(newState.stats.health + HEALTH_REGEN_PER_TICK * tickCount);
   }
 
   // El Tamagotchi muere si la salud llega a 0
@@ -54,20 +63,8 @@ export function tick(state: PetState, tickCount: number = 1, mutate: boolean = f
  * Obtiene la tasa de degradación según la dificultad
  */
 function getDegradationRate(difficulty: string, stat: 'hunger' | 'happiness' | 'energy'): number {
-  const baseRates = {
-    hunger: 0.08,     // ~15 min to reach 80 from 0 (at 1x)
-    happiness: 0.06,  // ~22 min to reach 0 from 80 (at 1x)
-    energy: 0.03,     // ~55 min to reach 0 from 100
-  };
-
-  const multipliers = {
-    easy: 0.5,
-    normal: 1.0,
-    hard: 1.5,
-  };
-
-  const multiplier = multipliers[difficulty as keyof typeof multipliers] ?? 1.0;
-  return baseRates[stat] * multiplier;
+  const multiplier = DIFFICULTY_MULTIPLIERS[difficulty as keyof typeof DIFFICULTY_MULTIPLIERS] ?? 1.0;
+  return DEGRADATION_BASE[stat] * multiplier;
 }
 
 /**

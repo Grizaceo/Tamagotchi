@@ -3,6 +3,13 @@ import type { Action } from '../model/Actions';
 import { clampStat } from '../model/Stats';
 import { createEvent } from '../model/Events';
 import { tick } from './tick';
+import {
+  ACTION_REWARDS,
+  MEDICATE_HAPPINESS_BONUS_AFFECTION_THRESHOLD,
+  MEDICATE_HAPPINESS_BONUS_AMOUNT,
+  MINIGAME_COOLDOWN_TICKS,
+  MINIGAME_REWARDS,
+} from '../balance/constants';
 
 /**
  * Aplica una acción al estado y retorna el nuevo estado
@@ -38,23 +45,33 @@ export function reduce(state: PetState, action: Action): PetState {
   // Luego aplica el efecto de la acción
   switch (action.type) {
     case 'FEED':
-      newState = applyFeed(newState, action);
+      newState = applyActionReward(newState, action, ACTION_REWARDS.FEED);
+      newState.counts.feed++;
       break;
     case 'PLAY':
-      newState = applyPlay(newState, action);
+      newState = applyActionReward(newState, action, ACTION_REWARDS.PLAY);
+      newState.counts.play++;
       break;
     case 'REST':
-      newState = applyRest(newState, action);
+      newState = applyActionReward(newState, action, ACTION_REWARDS.REST);
+      newState.counts.rest++;
       break;
     case 'MEDICATE':
       newState = applyMedicate(newState, action);
+      newState.counts.medicate++;
       break;
     case 'PET':
-      newState = applyPet(newState, action);
+      newState = applyActionReward(newState, action, ACTION_REWARDS.PET);
+      newState.counts.pet++;
       break;
     case 'PLAY_MINIGAME':
       newState = applyPlayMinigame(newState, action);
       break;
+  }
+
+  // Incrementar totalActions para FEED/PLAY/REST/MEDICATE/PET (no minigames)
+  if (action.type !== 'PLAY_MINIGAME') {
+    newState.counts.totalActions++;
   }
 
   // Optimización: Truncar el historial para evitar crecimiento infinito
@@ -66,82 +83,52 @@ export function reduce(state: PetState, action: Action): PetState {
   return newState;
 }
 
-function applyFeed(state: PetState, action: Action): PetState {
+// ---------------------------------------------------------------------------
+// Aplicador de recompensa genérico (usa ACTION_REWARDS)
+// ---------------------------------------------------------------------------
+function applyActionReward(state: PetState, action: Action, reward: typeof ACTION_REWARDS.FEED): PetState {
   const hungerBefore = state.stats.hunger;
+  const happinessBefore = state.stats.happiness;
+  const energyBefore = state.stats.energy;
+  const healthBefore = state.stats.health;
+  const affectionBefore = state.stats.affection;
 
-  // Reduce hambre significativamente y mejora felicidad
-  state.stats.hunger = clampStat(state.stats.hunger - 30);
-  state.stats.happiness = clampStat(state.stats.happiness + 10);
+  state.stats.hunger = clampStat(state.stats.hunger + reward.hungerDelta);
+  state.stats.happiness = clampStat(state.stats.happiness + reward.happinessDelta);
+  state.stats.energy = clampStat(state.stats.energy + reward.energyDelta);
+  state.stats.health = clampStat(state.stats.health + reward.healthDelta);
+  state.stats.affection = clampStat(state.stats.affection + reward.affectionDelta);
 
   state.history.push(
     createEvent('STAT_CHANGED', action.timestamp, {
-      action: 'FEED',
+      action: action.type,
       hungerBefore,
       hungerAfter: state.stats.hunger,
-    })
-  );
-
-  // Actualizar contadores
-  state.counts.feed++;
-  state.counts.totalActions++;
-
-  return state;
-}
-
-function applyPlay(state: PetState, action: Action): PetState {
-  const happinessBefore = state.stats.happiness;
-
-  // Aumenta felicidad, reduce energía algo y da un poco de hambre
-  state.stats.happiness = clampStat(state.stats.happiness + 25);
-  state.stats.energy = clampStat(state.stats.energy - 10);
-  state.stats.hunger = clampStat(state.stats.hunger + 5);
-
-  state.history.push(
-    createEvent('STAT_CHANGED', action.timestamp, {
-      action: 'PLAY',
       happinessBefore,
       happinessAfter: state.stats.happiness,
-    })
-  );
-
-  // Actualizar contadores
-  state.counts.play++;
-  state.counts.totalActions++;
-
-  return state;
-}
-
-function applyRest(state: PetState, action: Action): PetState {
-  const energyBefore = state.stats.energy;
-
-  // Aumenta energía bastante, leve hambre
-  state.stats.energy = clampStat(state.stats.energy + 40);
-  state.stats.hunger = clampStat(state.stats.hunger + 3);
-
-  state.history.push(
-    createEvent('STAT_CHANGED', action.timestamp, {
-      action: 'REST',
       energyBefore,
       energyAfter: state.stats.energy,
+      healthBefore,
+      healthAfter: state.stats.health,
+      affectionBefore,
+      affectionAfter: state.stats.affection,
     })
   );
-
-  // Actualizar contadores
-  state.counts.rest++;
-  state.counts.totalActions++;
 
   return state;
 }
 
+// ---------------------------------------------------------------------------
+// Medicate con bonus condicional (no entra en ACTION_REWARDS porque tiene lógica extra)
+// ---------------------------------------------------------------------------
 function applyMedicate(state: PetState, action: Action): PetState {
   const healthBefore = state.stats.health;
 
-  // Aumenta salud significativamente
-  state.stats.health = clampStat(state.stats.health + 40);
+  state.stats.health = clampStat(state.stats.health + ACTION_REWARDS.MEDICATE.healthDelta);
 
-  // Si hay mucho afecto, curar también pone feliz
-  if (state.stats.affection > 70) {
-    state.stats.happiness = clampStat(state.stats.happiness + 20);
+  // Bonus condicional
+  if (state.stats.affection > MEDICATE_HAPPINESS_BONUS_AFFECTION_THRESHOLD) {
+    state.stats.happiness = clampStat(state.stats.happiness + MEDICATE_HAPPINESS_BONUS_AMOUNT);
   }
 
   state.history.push(
@@ -152,60 +139,31 @@ function applyMedicate(state: PetState, action: Action): PetState {
     })
   );
 
-  // Actualizar contadores
-  state.counts.medicate++;
-  state.counts.totalActions++;
-
   return state;
 }
 
-function applyPet(state: PetState, action: Action): PetState {
-  const happinessBefore = state.stats.happiness;
-
-  // Aumenta felicidad y afecto
-  state.stats.happiness = clampStat(state.stats.happiness + 10);
-  state.stats.affection = clampStat(state.stats.affection + 5);
-
-  state.history.push(
-    createEvent('STAT_CHANGED', action.timestamp, {
-      action: 'PET',
-      happinessBefore,
-      happinessAfter: state.stats.happiness,
-    })
-  );
-
-  // Actualizar contadores
-  state.counts.pet++;
-  state.counts.totalActions++;
-
-  return state;
-}
-
+// ---------------------------------------------------------------------------
+// Minigames con cooldown y recompensas escalonadas
+// ---------------------------------------------------------------------------
 function applyPlayMinigame(state: PetState, action: Action): PetState {
   const gameId = (action.data?.gameId as string) || 'unknown';
   const result = (action.data?.result as string) || 'win';
   const score = (action.data?.score as number) || 0;
 
-  // Cooldown de 100 ticks - typeguard
+  // Cooldown de 100 ticks
   const lastPlayedValue = state.minigames.lastPlayed[gameId as keyof typeof state.minigames.lastPlayed];
   const lastPlayed = lastPlayedValue || -1000;
-  if (state.totalTicks - lastPlayed < 100) {
+  if (state.totalTicks - lastPlayed < MINIGAME_COOLDOWN_TICKS) {
     return state; // No recompensa si está en cooldown
   }
 
-  // Recompensas
-  if (result === 'perfect') {
-    state.stats.happiness = clampStat(state.stats.happiness + 25);
-    state.stats.affection = clampStat(state.stats.affection + 10);
-    state.history.push(createEvent('MINIGAME_PERFECT', action.timestamp, { gameId, score }));
-  } else if (result === 'win') {
-    state.stats.happiness = clampStat(state.stats.happiness + 15);
-    state.stats.affection = clampStat(state.stats.affection + 5);
-    state.history.push(createEvent('MINIGAME_WIN', action.timestamp, { gameId, score }));
-  } else {
-    // Loss - no rewards
-    state.history.push(createEvent('MINIGAME_LOSS', action.timestamp, { gameId, score }));
-  }
+  // Recompensas escalonadas desde constants
+  const reward = MINIGAME_REWARDS[result] ?? MINIGAME_REWARDS.loss;
+  state.stats.happiness = clampStat(state.stats.happiness + reward.happinessDelta);
+  state.stats.affection = clampStat(state.stats.affection + reward.affectionDelta);
+
+  const eventType = result === 'perfect' ? 'MINIGAME_PERFECT' : result === 'win' ? 'MINIGAME_WIN' : 'MINIGAME_LOSS';
+  state.history.push(createEvent(eventType, action.timestamp, { gameId, score }));
 
   // Registrar último juego
   state.minigames.lastPlayed[gameId as keyof typeof state.minigames.lastPlayed] = state.totalTicks;
@@ -221,8 +179,6 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
     if (result === 'perfect') gameStats.totalPerfect++;
   }
 
-  // Nota: Minigames no cuentan para "totalActions" ni counters específicos de cuidado (feed, rest, etc)
-  // según la lógica anterior, así que no incrementamos state.counts aquí.
-
+  // Nota: Minigames no cuentan para "totalActions" ni counters específicos de cuidado
   return state;
 }

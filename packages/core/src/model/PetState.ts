@@ -90,8 +90,8 @@ export function createInitialPetState(): PetState {
 }
 
 export function createInitialPetStateFor(petLine: PetLine): PetState {
-  console.log(`[PomPom Core] createInitialPetState called - Line=${petLine}`);
-  const initialSpecies = getBaseSpeciesForLine(petLine);
+    // console.log(`[PomPom Core] createInitialPetState called - Line=${petLine}`);
+    const initialSpecies = getBaseSpeciesForLine(petLine);
   return {
     petLine,
     species: initialSpecies,

@@ -12,8 +12,8 @@ describe('Minigame Logic', () => {
         const action = createAction('PLAY_MINIGAME', 10, { gameId: 'pudding', result: 'win', score: 100 });
         const newState = reduce(state, action);
 
-        // 50 - 0.06 (tick) + 15 (win) = 64.94
-        expect(newState.stats.happiness).toBeCloseTo(64.94);
+        // 50 - 0.10 (tick) + 15 (win) = 64.90
+        expect(newState.stats.happiness).toBeCloseTo(64.90);
         expect(newState.stats.affection).toBe(15);   // 10 + 5
         expect(newState.minigames.lastPlayed['pudding']).toBe(1); // totalTicks was 0, tick(1) makes it 1
     });
@@ -26,8 +26,8 @@ describe('Minigame Logic', () => {
         const action = createAction('PLAY_MINIGAME', 10, { gameId: 'memory', result: 'perfect', score: 200 });
         const newState = reduce(state, action);
 
-        // 50 - 0.06 (tick) + 25 (perfect) = 74.94
-        expect(newState.stats.happiness).toBeCloseTo(74.94);
+        // 50 - 0.10 (tick) + 25 (perfect) = 74.90
+        expect(newState.stats.happiness).toBeCloseTo(74.90);
         expect(newState.stats.affection).toBe(20);   // 10 + 10
     });
 
@@ -41,8 +41,8 @@ describe('Minigame Logic', () => {
         const newState = reduce(state, action);
 
         // 150 -> 151 (tick). 151 - 100 = 51. Cooldown is 100.
-        // 50 - 0.06 = 49.94
-        expect(newState.stats.happiness).toBeCloseTo(49.94);
+        // 50 - 0.10 = 49.90
+        expect(newState.stats.happiness).toBeCloseTo(49.90);
     });
 
     it('should allow rewards after cooldown expires', () => {
@@ -55,7 +55,7 @@ describe('Minigame Logic', () => {
         const newState = reduce(state, action);
 
         // 200 -> 201 (tick). 201 - 100 = 101. Cooldown is 100. OK.
-        // 50 - 0.06 + 15 = 64.94
-        expect(newState.stats.happiness).toBeCloseTo(64.94);
+        // 50 - 0.10 + 15 = 64.90
+        expect(newState.stats.happiness).toBeCloseTo(64.90);
     });
 });
