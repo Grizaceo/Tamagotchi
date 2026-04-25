@@ -1,4 +1,5 @@
 import type { ActionType } from '@pompom/core';
+import type { SoundType } from '../audio/AudioEngine';
 
 export type SceneId = 'Home' | 'CareMenu' | 'Gifts' | 'Album' | 'Settings' | 'Minigames';
 
@@ -26,12 +27,12 @@ export const BOTTOM_MENU: Array<{ id: SceneId; label: string; icon: string }> = 
   { id: 'Minigames', label: 'Games', icon: 'MG' },
 ];
 
-export const CARE_ACTIONS: Array<{ type: ActionType; label: string }> = [
-  { type: 'FEED', label: 'Feed' },
-  { type: 'PLAY', label: 'Play' },
-  { type: 'REST', label: 'Rest' },
-  { type: 'MEDICATE', label: 'Heal' },
-  { type: 'PET', label: 'Pet' },
+export const CARE_ACTIONS: Array<{ type: ActionType; label: string; sound: SoundType }> = [
+  { type: 'FEED', label: 'Feed', sound: 'feed' },
+  { type: 'PLAY', label: 'Play', sound: 'play' },
+  { type: 'REST', label: 'Rest', sound: 'rest' },
+  { type: 'MEDICATE', label: 'Heal', sound: 'medicate' },
+  { type: 'PET', label: 'Pet', sound: 'pet' },
 ];
 
 export const SETTINGS_ITEMS = [

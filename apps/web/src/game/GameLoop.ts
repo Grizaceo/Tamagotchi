@@ -31,6 +31,8 @@ import {
   getStorageLookupKeys,
   shouldForceReset,
 } from './runtimeConfig';
+import { createAudioEngine } from '../audio/AudioEngine';
+import { createAmbientEngine } from '../audio/AmbientEngine';
 
 const TICK_MS = 1000;
 const SAVE_INTERVAL_MS = 5000;
@@ -69,6 +71,27 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   let pendingSave = false;
   let rafId = 0;
   let isResetting = false;
+
+  // --- Audio Engine ---
+  const audio = createAudioEngine();
+  audio.setEnabled(petState.settings.soundEnabled);
+  audio.setReducedMotion(petState.settings.reducedMotion);
+
+  // --- Ambient Music Engine ---
+  const ambient = createAmbientEngine();
+  ambient.setEnabled(petState.settings.soundEnabled);
+  ambient.setReducedMotion(petState.settings.reducedMotion);
+
+  // Estado previo para detectar transiciones críticas (muerte, alertas, evolución)
+  let prevAlive = petState.alive;
+  let prevHealth = petState.stats.health;
+  let prevHunger = petState.stats.hunger;
+  let prevSpecies = petState.species;
+
+  // Iniciar música ambiental si empezamos en Home con pet vivo
+  if (uiState.scene === 'Home' && petState.alive) {
+    ambient.start();
+  }
 
   // --- Visual System Initialization ---
   let spriteRenderer: any = null; // typed as SpriteRenderer
@@ -160,6 +183,9 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     petState = reduce(petState, action);
     petState = postProcessState(petState);
     pendingSave = true;
+    if (result.result === 'win') {
+      audio.play('win');
+    }
   });
 
   let fadeAlpha = 0;
@@ -204,6 +230,28 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       }
     }
 
+    // Detectar transiciones críticas: muerte, alertas, evolución
+    if (prevAlive && !petState.alive) {
+      audio.play('die');
+    }
+    if (petState.alive && petState.stats.health < 20 && prevHealth >= 20) {
+      audio.play('alert');
+    }
+    if (petState.alive && petState.stats.hunger > 90 && prevHunger <= 90) {
+      audio.play('alert');
+    }
+    if (petState.species !== prevSpecies) {
+      audio.play('evolve');
+    }
+    prevAlive = petState.alive;
+    prevHealth = petState.stats.health;
+    prevHunger = petState.stats.hunger;
+    prevSpecies = petState.species;
+
+    // --- Ambient mood detection ---
+    const isCritical = petState.stats.health < 20 || petState.stats.hunger > 90;
+    ambient.setMood(isCritical ? 'critical' : 'home');
+
     // Render Frame
     renderFrame(ctx, petState, uiState, now, {
       minigameFrame: uiState.scene === 'Minigames' && uiState.minigameMode === 'playing' ? minigameCanvas : null,
@@ -222,11 +270,12 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     rafId = requestAnimationFrame(loop);
   };
 
-  const executeAction = (type: (typeof CARE_ACTIONS)[number]['type']) => {
+  const executeAction = (type: (typeof CARE_ACTIONS)[number]['type'], soundType: (typeof CARE_ACTIONS)[number]['sound']) => {
     const action = createAction(type, petState.totalTicks);
     petState = reduce(petState, action);
     petState = postProcessState(petState);
     pendingSave = true;
+    audio.play(soundType);
   };
 
   const toggleSetting = (id: string) => {
@@ -234,6 +283,8 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     switch (id) {
       case 'mute':
         petState = { ...petState, settings: { ...settings, soundEnabled: !settings.soundEnabled } };
+        audio.setEnabled(petState.settings.soundEnabled);
+        ambient.setEnabled(petState.settings.soundEnabled);
         break;
       case 'speed':
         petState = { ...petState, settings: { ...settings, speed: settings.speed === '1x' ? '2x' : '1x' } };
@@ -243,6 +294,8 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
         break;
       case 'reducedMotion':
         petState = { ...petState, settings: { ...settings, reducedMotion: !settings.reducedMotion } };
+        audio.setReducedMotion(petState.settings.reducedMotion);
+        ambient.setReducedMotion(petState.settings.reducedMotion);
         break;
       case 'reset':
         if (!uiState.settingsConfirmation) {
@@ -280,6 +333,12 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     if (scene === 'Minigames') {
       uiState.minigameMode = 'select';
     }
+    // Ambient music: solo en Home cuando el pet está vivo
+    if (scene === 'Home' && petState.alive) {
+      ambient.start();
+    } else {
+      ambient.stop();
+    }
   };
 
   const handleCommand = (command: InputCommand) => {
@@ -292,8 +351,10 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       case 'Home':
         if (command === 'LEFT') {
           uiState.menuIndex = wrapIndex(uiState.menuIndex - 1, BOTTOM_MENU.length);
+          audio.play('ui');
         } else if (command === 'RIGHT') {
           uiState.menuIndex = wrapIndex(uiState.menuIndex + 1, BOTTOM_MENU.length);
+          audio.play('ui');
         } else if (command === 'ENTER') {
           openScene(BOTTOM_MENU[uiState.menuIndex].id);
         }
@@ -301,30 +362,39 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       case 'CareMenu':
         if (command === 'LEFT') {
           uiState.careIndex = wrapIndex(uiState.careIndex - 1, CARE_ACTIONS.length);
+          audio.play('ui');
         } else if (command === 'RIGHT') {
           uiState.careIndex = wrapIndex(uiState.careIndex + 1, CARE_ACTIONS.length);
+          audio.play('ui');
         } else if (command === 'ENTER') {
           const selected = CARE_ACTIONS[uiState.careIndex];
-          executeAction(selected.type);
+          executeAction(selected.type, selected.sound);
         } else if (command === 'BACK') {
+          audio.play('ui');
           openScene('Home');
         }
         break;
       case 'Gifts':
         if (command === 'LEFT') {
           uiState.giftIndex = wrapIndex(uiState.giftIndex - 1, petState.unlockedGifts.length);
+          audio.play('ui');
         } else if (command === 'RIGHT') {
           uiState.giftIndex = wrapIndex(uiState.giftIndex + 1, petState.unlockedGifts.length);
+          audio.play('ui');
         } else if (command === 'BACK') {
+          audio.play('ui');
           openScene('Home');
         }
         break;
       case 'Album':
         if (command === 'LEFT') {
           navigateAlbum(-1);
+          audio.play('ui');
         } else if (command === 'RIGHT') {
           navigateAlbum(1);
+          audio.play('ui');
         } else if (command === 'BACK') {
+          audio.play('ui');
           openScene('Home');
         }
         break;
@@ -334,15 +404,19 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
             toggleSetting('reset'); // Confirm reset
           } else if (command === 'BACK' || command === 'LEFT' || command === 'RIGHT') {
             uiState.settingsConfirmation = false; // Cancel
+            audio.play('ui');
           }
         } else {
           if (command === 'LEFT') {
             uiState.settingsIndex = wrapIndex(uiState.settingsIndex - 1, SETTINGS_ITEMS.length);
+            audio.play('ui');
           } else if (command === 'RIGHT') {
             uiState.settingsIndex = wrapIndex(uiState.settingsIndex + 1, SETTINGS_ITEMS.length);
+            audio.play('ui');
           } else if (command === 'ENTER') {
             toggleSetting(SETTINGS_ITEMS[uiState.settingsIndex].id);
           } else if (command === 'BACK') {
+            audio.play('ui');
             openScene('Home');
           }
         }
@@ -351,8 +425,10 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
         if (uiState.minigameMode === 'select') {
           if (command === 'LEFT') {
             uiState.minigameIndex = wrapIndex(uiState.minigameIndex - 1, MINIGAMES.length);
+            audio.play('ui');
           } else if (command === 'RIGHT') {
             uiState.minigameIndex = wrapIndex(uiState.minigameIndex + 1, MINIGAMES.length);
+            audio.play('ui');
           } else if (command === 'ENTER') {
             const selected = MINIGAMES[uiState.minigameIndex];
             uiState.minigameMode = 'playing';
@@ -361,6 +437,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
             minigameManager.setExtra({ bestScore: gameStats?.bestScore ?? 0, ...(selected.extra ?? {}) });
             minigameManager.switchScene(selected.scene);
           } else if (command === 'BACK') {
+            audio.play('ui');
             openScene('Home');
           }
         }
@@ -427,6 +504,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     window.removeEventListener('beforeunload', beforeUnload);
     document.removeEventListener('visibilitychange', onVisibilityChange);
     cancelAnimationFrame(rafId);
+    ambient.stop();
   };
 }
 
