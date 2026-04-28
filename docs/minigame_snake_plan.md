@@ -1,7 +1,7 @@
-# Plan De Implementacion: Snake
+# Plan De Implementacion: Chicha (Dachshund)
 
 ## Objetivo
-Agregar un minijuego `Snake` integrado al sistema actual de escenas, cooldown y recompensas.
+Agregar un minijuego `Chicha` (rediseño de Snake con Dachshund) integrado al sistema actual de escenas, cooldown y recompensas.
 
 ## Alcance MVP
 - Grilla fija en canvas interno (ejemplo 20x15 celdas).

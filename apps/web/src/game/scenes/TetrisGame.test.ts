@@ -17,6 +17,18 @@ function makeContext(): SceneContext & { completedResults: any[] } {
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     stroke: vi.fn(),
+    arc: vi.fn(),
+    arcTo: vi.fn(),
+    roundRect: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    drawImage: vi.fn(),
+    clip: vi.fn(),
+    rect: vi.fn(),
+    ellipse: vi.fn(),
+    fill: vi.fn(),
+    closePath: vi.fn(),
+    measureText: vi.fn(() => ({ width: 0 })),
   } as unknown as CanvasRenderingContext2D;
 
   const canvas = { width: 320, height: 240 } as HTMLCanvasElement;

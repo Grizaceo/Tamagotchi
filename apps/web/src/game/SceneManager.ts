@@ -1,18 +1,20 @@
 import { Scene } from './scenes/Scene';
 import type { SceneContext } from './scenes/Scene';
 import type { InputCommand } from './Input';
+import type { AssetManager } from './renderer/SpriteRenderer';
 
 export class SceneManager {
     private currentScene: Scene | null = null;
     private scenes: Map<string, new (ctx: SceneContext) => Scene> = new Map();
     private context: SceneContext;
 
-    constructor(canvas: HTMLCanvasElement, onSceneChange?: (sceneName: string) => void) {
+    constructor(canvas: HTMLCanvasElement, assetManager?: AssetManager, onSceneChange?: (sceneName: string) => void) {
         const ctx = canvas.getContext('2d')!;
         const handler = onSceneChange ?? ((name: string) => this.switchScene(name));
         this.context = {
             canvas,
             ctx,
+            assetManager,
             onSceneChange: handler,
         };
     }
@@ -58,5 +60,9 @@ export class SceneManager {
 
     setExtra(data: Record<string, unknown>) {
         this.context.extra = data;
+    }
+    
+    setAssetManager(am: AssetManager) {
+        this.context.assetManager = am;
     }
 }

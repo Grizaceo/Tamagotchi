@@ -1,10 +1,20 @@
 import type { PetState } from '@pompom/core';
-import { getGiftById } from '@pompom/core';
+import { getGiftById, getAlbumEntryById } from '@pompom/core';
 import { ALBUM_PAGE_SIZE, CARE_ACTIONS, MINIGAMES, SETTINGS_ITEMS } from './Scenes';
 import type { UiState } from './Scenes';
-import type { AnimationState, SpriteRenderer, AssetManager } from './renderer/SpriteRenderer';
+import { SpriteRenderer } from './renderer/SpriteRenderer';
+import type { AnimationState, AssetManager } from './renderer/SpriteRenderer';
 import type { UIRenderer } from './renderer/UIRenderer';
 import { PALETTE } from './palette';
+import { SPRITE_CONFIGS } from './renderer/SpriteConfigs';
+
+const REPRESENTATIVE_SPECIES: Record<string, string> = {
+  'flan': 'POMPOMPURIN',
+  'seal': 'SEAL_PERFECT',
+  'fiu': 'FIU_PERFECT',
+  'salchicha': 'SALCHICHA_PERFECT'
+};
+
 
 export function renderFrame(
   ctx: CanvasRenderingContext2D,
@@ -23,7 +33,7 @@ export function renderFrame(
 
   // 1. Draw UI (Header/Footer/Icons)
   if (options?.uiRenderer) {
-    const selection = ui.scene === 'Home' ? ui.menuIndex : -1;
+    const selection = ui.scene === 'Home' ? ui.menuIndex : (ui.scene === 'CareMenu' ? 0 : -1);
     options.uiRenderer.setSelectedIcon(selection);
     options.uiRenderer.draw(ctx, state);
   }
@@ -77,13 +87,14 @@ function drawScene(
       drawHome(ctx, state, body, now, options);
       break;
     case 'CareMenu':
+      drawHome(ctx, state, body, now, options);
       drawCareMenu(ctx, ui, body);
       break;
     case 'Gifts':
       drawGifts(ctx, state, ui, body, options?.spriteRenderer, options?.assetManager);
       break;
     case 'Album':
-      drawAlbum(ctx, state, ui, body);
+      drawAlbum(ctx, state, ui, body, options?.assetManager, options?.spriteRenderer);
       break;
     case 'Settings':
       drawSettings(ctx, state, ui, body);
@@ -217,15 +228,21 @@ function drawStats(
   STATS_POOL[3].value = state.stats.health;
   STATS_POOL[4].value = state.stats.affection;
 
+  // 1. Draw Stats Background Bar
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+  ctx.fillRect(area.x, area.y, area.w, area.h);
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(area.x, area.y + area.h);
+  ctx.lineTo(area.x + area.w, area.y + area.h);
+  ctx.stroke();
+
   // Compact Top Layout: 1 row of 5 items
-  // ITEM: [ICON] [BAR___]
   const paddingX = 4;
   const itemWidth = (area.w - (paddingX * 6)) / 5;
   const startX = area.x + paddingX;
-  const startY = area.y + 4;
-
-  // Draw labels above or inside?
-  // Let's do icon + mini bar below it.
+  const startY = area.y + 3;
 
   STATS_POOL.forEach((stat, i) => {
     const x = startX + i * (itemWidth + paddingX);
@@ -244,11 +261,10 @@ function drawCompactStat(
   spriteRenderer?: SpriteRenderer,
   assetManager?: AssetManager
 ) {
-  const iconSize = 10;
+  const iconSize = 12;
   const centerX = x + w / 2;
 
   // 1. Icon
-  // Try to use placeholder first
   let drawn = false;
   if (assetManager) {
     const iconMap: Record<string, string> = {
@@ -261,7 +277,17 @@ function drawCompactStat(
     const key = iconMap[stat.icon];
     const img = assetManager.get(key);
     if (img) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
+      // Subtle depth shadow
+      ctx.shadowBlur = 2;
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.shadowOffsetY = 1;
+
       ctx.drawImage(img, centerX - iconSize / 2, y, iconSize, iconSize);
+      ctx.restore();
       drawn = true;
     }
   }
@@ -332,25 +358,47 @@ function drawCompactStat(
 
 
 function drawCareMenu(ctx: CanvasRenderingContext2D, ui: UiState, area: Rect): void {
-  ctx.fillStyle = PALETTE.inkSoft;
-  ctx.font = '10px "Cascadia Mono", "Courier New", monospace';
-  ctx.textBaseline = 'top';
-  ctx.fillText('Select an action', area.x + 4, area.y + 4);
+  const menuH = 40;
+  const menuY = area.y + area.h - menuH;
 
-  const gap = 6;
-  const itemW = Math.floor((area.w - gap * (CARE_ACTIONS.length - 1)) / CARE_ACTIONS.length);
-  const y = area.y + 28;
+  // Draw overlay background
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(area.x, menuY, area.w, menuH);
+  ctx.strokeStyle = PALETTE.ink;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(area.x, menuY, area.w, menuH);
+
+  // Instructions
+  ctx.fillStyle = PALETTE.screen;
+  ctx.font = '8px "Cascadia Mono", "Courier New", monospace';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'center';
+  ctx.fillText('SELECT CARE ACTION', area.x + area.w / 2, menuY + 4);
+
+  const gap = 4;
+  const itemW = Math.floor((area.w - 12 - gap * (CARE_ACTIONS.length - 1)) / CARE_ACTIONS.length);
+  const buttonY = menuY + 16;
 
   CARE_ACTIONS.forEach((action, index) => {
-    const x = area.x + index * (itemW + gap);
-    ctx.fillStyle = index === ui.careIndex ? PALETTE.accent : PALETTE.inkSoft;
-    ctx.fillRect(x, y, itemW, 24);
+    const x = area.x + 6 + index * (itemW + gap);
+    const selected = index === ui.careIndex;
+    
+    ctx.fillStyle = selected ? PALETTE.accent : PALETTE.inkSoft;
+    ctx.fillRect(x, buttonY, itemW, 18);
+    
+    // Selection border
+    if (selected) {
+      ctx.strokeStyle = PALETTE.screen;
+      ctx.strokeRect(x - 1, buttonY - 1, itemW + 2, 20);
+    }
+
     ctx.fillStyle = PALETTE.screen;
-    ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
+    ctx.font = '7px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(action.label.toUpperCase(), x + itemW / 2, y + 12);
+    ctx.fillText(action.label.toUpperCase(), x + itemW / 2, buttonY + 9);
   });
+
   ctx.textAlign = 'start';
   ctx.textBaseline = 'alphabetic';
 }
@@ -380,8 +428,10 @@ function drawGifts(
     const y = listArea.y + idx * 14;
     if (y > listArea.y + listArea.h - 12) return;
     const selected = idx === ui.giftIndex;
+    const giftInfo = getGiftById(giftId);
+    const label = giftInfo ? giftInfo.name : giftId;
     ctx.fillStyle = selected ? PALETTE.accent : PALETTE.inkSoft;
-    ctx.fillText(selected ? `> ${giftId}` : `  ${giftId}`, listArea.x, y);
+    ctx.fillText(selected ? `> ${label}` : `  ${label}`, listArea.x, y);
   });
 
   const gift = getGiftById(gifts[ui.giftIndex]);
@@ -436,7 +486,7 @@ function drawGifts(
   }
 }
 
-function drawAlbum(ctx: CanvasRenderingContext2D, state: PetState, ui: UiState, area: Rect): void {
+function drawAlbum(ctx: CanvasRenderingContext2D, state: PetState, ui: UiState, area: Rect, assetManager?: AssetManager, _spriteRenderer?: SpriteRenderer): void {
   const entries = Object.keys(state.album);
   const totalPages = Math.max(1, Math.ceil(entries.length / ALBUM_PAGE_SIZE));
   const page = Math.min(ui.albumPage, totalPages - 1);
@@ -459,9 +509,90 @@ function drawAlbum(ctx: CanvasRenderingContext2D, state: PetState, ui: UiState, 
     ctx.fillText(selected ? `> ${entry}` : `  ${entry}`, area.x + 6, y);
   });
 
+  // Entry details
+  const entryIndex = Math.max(0, Math.min(ui.albumIndex, pageEntries.length - 1));
+  const entryId = pageEntries[entryIndex];
+  const entry = getAlbumEntryById(entryId);
+  if (!entry) return;
+
+  const detailArea = { x: area.x + area.w * 0.52, y: area.y + 4, w: area.w * 0.44, h: area.h - 8 };
+  ctx.fillStyle = PALETTE.ink;
+  ctx.font = '10px "Cascadia Mono", monospace';
+  ctx.fillText(entry.name.toUpperCase(), detailArea.x, detailArea.y + 10);
+  
+  ctx.font = '8px "Cascadia Mono", monospace';
   ctx.fillStyle = PALETTE.inkSoft;
+  wrapText(ctx, entry.description, detailArea.x, detailArea.y + 24, detailArea.w, 10);
+
+  // Image Preview
+  const imgSize = 72; // Increased size
+  const imgX = detailArea.x + (detailArea.w - imgSize) / 2;
+  const imgY = detailArea.y + detailArea.h - imgSize - 20;
+
+  // 1. Sticker Background / Glow
+  ctx.save();
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = PALETTE.accent;
+  ctx.fillStyle = PALETTE.screen;
+  ctx.beginPath();
+  ctx.arc(imgX + imgSize / 2, imgY + imgSize / 2, imgSize / 2 + 6, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // 2. Golden Stamp Border
+  ctx.strokeStyle = '#FFD700'; // Gold
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+
+  // 3. Reward Label
+  ctx.fillStyle = PALETTE.accent;
+  ctx.font = 'bold 8px "Cascadia Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('STAMP REWARD', imgX + imgSize / 2, imgY - 10);
+  ctx.textAlign = 'left';
+
+  let drawn = false;
+
+  // 4. Dynamic Reward Sprite (Priority)
+  const repSpecies = REPRESENTATIVE_SPECIES[entry.petLine] || state.species;
+  const config = SPRITE_CONFIGS[repSpecies];
+
+  if (assetManager && config && entry.rewardAnimation) {
+    const img = assetManager.get(repSpecies);
+    const anim = entry.rewardAnimation as any;
+    const frame = entry.rewardFrame ?? 0;
+    
+    if (img) {
+      SpriteRenderer.drawStaticFrame(ctx, img, config, anim, frame, imgX, imgY, imgSize);
+      drawn = true;
+    }
+  }
+
+  // 5. Fallback to Asset Image
+  if (!drawn && assetManager) {
+    const img = assetManager.get('album_moments_demo') || assetManager.get('menu_album');
+    if (img) {
+      ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
+      drawn = true;
+    }
+  }
+
+  // 6. Last fallback (placeholder box)
+  if (!drawn) {
+    ctx.strokeStyle = PALETTE.inkSoft;
+    ctx.strokeRect(imgX, imgY, imgSize, imgSize);
+    ctx.textAlign = 'center';
+    ctx.fillText('?', imgX + imgSize / 2, imgY + imgSize / 2);
+    ctx.textAlign = 'left';
+  }
+
+  // Page info
+  ctx.fillStyle = PALETTE.inkSoft;
+  ctx.font = '8px "Cascadia Mono", monospace';
   ctx.fillText(`Page ${page + 1}/${totalPages}`, area.x + 6, area.y + area.h - 14);
 }
+
+
 
 function drawSettings(ctx: CanvasRenderingContext2D, state: PetState, ui: UiState, area: Rect): void {
   ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
@@ -540,15 +671,46 @@ function drawMinigames(
     return;
   }
 
-  ctx.fillText('Select a minigame', area.x + 6, area.y + 6);
-  MINIGAMES.forEach((game, index) => {
-    const y = area.y + 28 + index * 16;
+  // Header
+  ctx.fillStyle = PALETTE.ink;
+  ctx.font = 'bold 10px "Cascadia Mono", monospace';
+  ctx.fillText('SELECT A MINIGAME', area.x + 6, area.y + 6);
+  
+  // Scrolling logic
+  const PAGE_SIZE = 5;
+  const start = Math.max(0, Math.min(MINIGAMES.length - PAGE_SIZE, ui.minigameIndex - Math.floor(PAGE_SIZE / 2)));
+  const visibleGames = MINIGAMES.slice(start, start + PAGE_SIZE);
+
+  ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
+  visibleGames.forEach((game, i) => {
+    const index = start + i;
+    const y = area.y + 28 + i * 16;
     const selected = index === ui.minigameIndex;
-    ctx.fillStyle = selected ? PALETTE.accent : PALETTE.inkSoft;
-    ctx.fillText(selected ? `> ${game.label}` : `  ${game.label}`, area.x + 6, y);
+    
+    if (selected) {
+      ctx.fillStyle = 'rgba(0,0,0,0.05)';
+      ctx.fillRect(area.x, y - 2, area.w, 15);
+      ctx.fillStyle = PALETTE.accent;
+    } else {
+      ctx.fillStyle = PALETTE.inkSoft;
+    }
+    
+    ctx.fillText(selected ? `> ${game.label.toUpperCase()}` : `  ${game.label}`, area.x + 6, y);
   });
 
+  // Scroll indicators
+  if (start > 0) {
+    ctx.fillStyle = PALETTE.inkSoft;
+    ctx.fillText('↑', area.x + area.w - 12, area.y + 28);
+  }
+  if (start + PAGE_SIZE < MINIGAMES.length) {
+    ctx.fillStyle = PALETTE.inkSoft;
+    ctx.fillText('↓', area.x + area.w - 12, area.y + 28 + (PAGE_SIZE - 1) * 16);
+  }
+
+  // Instructions
   ctx.fillStyle = PALETTE.ink;
+  ctx.font = '8px "Cascadia Mono", monospace';
   ctx.fillText('LEFT/RIGHT to choose', area.x + 6, area.y + area.h - 26);
   ctx.fillText('ENTER to play - BACK to exit', area.x + 6, area.y + area.h - 14);
   ctx.textBaseline = 'alphabetic';

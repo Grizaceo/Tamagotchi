@@ -1,14 +1,16 @@
 export interface MinigameResult {
-  gameId: 'pudding' | 'memory' | 'snake' | 'tetris';
+  gameId: 'pudding' | 'memory' | 'snake' | 'tetris' | 'flappy' | 'seal';
   result: 'win' | 'perfect' | 'loss';
   score?: number;
 }
 
+import type { AssetManager } from '../renderer/SpriteRenderer';
 import type { InputCommand } from '../Input';
 
 export interface SceneContext {
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
+    assetManager?: AssetManager;
     onSceneChange: (sceneName: string) => void;
     onGameComplete?: (result: MinigameResult) => void;
     extra?: Record<string, unknown>;

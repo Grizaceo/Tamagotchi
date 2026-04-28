@@ -17,7 +17,7 @@ const MENU_ICONS: { label: string; srcIndex: number }[] = [
 
 export class UIRenderer {
     private assetManager: AssetManager;
-    private iconSrc: string = `${import.meta.env.BASE_URL}assets/ui/icons.png`;
+    private iconSrc: string = `${(typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/'}assets/ui/icons.png`;
 
     private selectedIconIndex: number = -1; // -1 means no menu selection active
 
@@ -59,63 +59,93 @@ export class UIRenderer {
     }
 
     private drawFooter(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
-        const displaySize = 20;
-        const padding = 16; // Slightly tighter to offset smaller icons
+        const displaySize = 14; // Smaller to fit better
+        const padding = 24; // More breathing room
         const count = MENU_ICONS.length;
         const totalWidth = count * displaySize + (count - 1) * padding;
         const startX = (320 - totalWidth) / 2;
-        const y = 240 - 30; // Slightly higher baseline
+        const footerH = 24;
+        const footerY = 240 - footerH;
+        const iconY = footerY + 2; 
 
-        // Grid assumption for retro icons: 1024x1024, ~256px grid
-        const cols = 4;
-        const gridSize = 256;
+        // 1. Draw Background Bar (Align the background)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.fillRect(0, footerY, 320, footerH);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, footerY);
+        ctx.lineTo(320, footerY);
+        ctx.stroke();
 
         const iconMap: Record<string, string> = {
-            'care': 'menu_food',
-            'gifts': 'menu_gift',
+            'care': 'menu_care',
+            'gifts': 'menu_gifts',
             'album': 'menu_album',
             'settings': 'menu_settings',
-            'games': 'menu_minigames',
+            'games': 'menu_games',
         };
 
         MENU_ICONS.forEach((icon, index) => {
             const x = startX + index * (displaySize + padding);
 
-            // Selection Highlight
+            // Selection Highlight - Premium Glow/Box
             if (index === this.selectedIconIndex) {
+                ctx.save();
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = 'rgba(255, 217, 74, 0.8)';
+                
                 ctx.fillStyle = '#FFD94A';
-                ctx.fillRect(x - 2, y - 2, displaySize + 4, displaySize + 4);
+                const r = 3;
+                const hx = x - 4;
+                const hy = iconY - 2;
+                const hw = displaySize + 8;
+                const hh = footerH - 4;
+                
+                // Rounded rect
+                ctx.beginPath();
+                ctx.roundRect(hx, hy, hw, hh, r);
+                ctx.fill();
+                ctx.restore();
             }
 
             // Draw Icon
-            // Try placeholder first
             let drawn = false;
             const placeholderKey = iconMap[icon.label];
             if (placeholderKey) {
                 const pImg = this.assetManager.get(placeholderKey);
                 if (pImg) {
-                    ctx.drawImage(pImg, x, y, displaySize, displaySize);
+                    ctx.save();
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    
+                    // Draw with slight shadow for depth
+                    ctx.shadowBlur = 2;
+                    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                    ctx.shadowOffsetY = 1;
+                    
+                    ctx.drawImage(pImg, x, iconY, displaySize, displaySize);
+                    ctx.restore();
                     drawn = true;
                 }
             }
 
             if (!drawn) {
-                const srcCol = icon.srcIndex % cols;
-                const srcRow = Math.floor(icon.srcIndex / cols);
-                const srcX = srcCol * gridSize;
-                const srcY = srcRow * gridSize;
+                const srcCol = icon.srcIndex % 4;
+                const srcRow = Math.floor(icon.srcIndex / 4);
+                const srcX = srcCol * 256;
+                const srcY = srcRow * 256;
 
-                ctx.drawImage(img, srcX, srcY, gridSize, gridSize, x, y, displaySize, displaySize);
+                ctx.drawImage(img, srcX, srcY, 256, 256, x, iconY, displaySize, displaySize);
             }
 
             // Draw Label
-            ctx.fillStyle = '#202020'; // use PALETTE.inkSoft? Hardcoded for now to match file style
-            ctx.font = '8px monospace';
+            ctx.fillStyle = index === this.selectedIconIndex ? '#202020' : '#606060';
+            ctx.font = 'bold 7px "Cascadia Mono", monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            // Shorten longer labels if needed
-            const label = icon.label.toUpperCase().substring(0, 6);
-            ctx.fillText(label, x + displaySize / 2, y + displaySize + 2);
+            const label = icon.label.toUpperCase();
+            ctx.fillText(label, x + displaySize / 2, iconY + displaySize + 1);
         });
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';

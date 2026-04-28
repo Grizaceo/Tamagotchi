@@ -173,10 +173,6 @@ export class SpriteRenderer {
             srcW = colW;
             srcH = rowH;
 
-            // Debug log once per second-ish to avoid spam, or checking specific condition
-            if (Math.random() < 0.01) {
-                console.log(`[SpriteRenderer Debug] asset=${this._assetKey} frame=${frameIndex} gridSize=${colW} srcRect=[${srcX}, ${srcY}, ${srcW}, ${srcH}] imgSize=[${img.width}, ${img.height}]`);
-            }
         }
 
         // Calculate display size maintaining aspect ratio
@@ -208,4 +204,76 @@ export class SpriteRenderer {
 
         ctx.restore();
     }
+
+    /**
+     * Static version to draw any sprite config without needing an instance.
+     * Uses a specific SpriteConfig instead of the instance's config.
+     */
+    public static drawStaticFrame(
+        ctx: CanvasRenderingContext2D,
+        img: HTMLImageElement,
+        config: SpriteConfig,
+        anim: AnimationState,
+        frameIndex: number,
+        x: number,
+        y: number,
+        displaySize: number,
+        flipX: boolean = false
+    ) {
+        const animConfig = config.animations[anim];
+        if (!animConfig) return;
+
+        // Clamp frame index
+        const actualFrame = Math.max(0, Math.min(frameIndex, animConfig.frames - 1));
+
+        // Determine source rectangle
+        let srcX: number;
+        let srcY: number;
+        let srcW: number;
+        let srcH: number;
+
+        if (animConfig.frameRects && animConfig.frameRects[actualFrame]) {
+            const rect = animConfig.frameRects[actualFrame];
+            srcX = rect.x;
+            srcY = rect.y;
+            srcW = rect.w;
+            srcH = rect.h;
+        } else {
+            const colW = config.gridSize;
+            const rowH = config.rowHeight ?? config.gridSize;
+            const startCol = animConfig.col ?? 0;
+            srcX = (startCol + actualFrame) * colW;
+            srcY = animConfig.row * rowH;
+            srcW = colW;
+            srcH = rowH;
+        }
+
+        const aspect = srcW / srcH;
+        let drawW: number;
+        let drawH: number;
+        if (aspect >= 1) {
+            drawW = displaySize;
+            drawH = displaySize / aspect;
+        } else {
+            drawH = displaySize;
+            drawW = displaySize * aspect;
+        }
+        const offsetX = (displaySize - drawW) / 2;
+        const offsetY = (displaySize - drawH) / 2;
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+
+        if (flipX) {
+            ctx.translate(x + displaySize, y);
+            ctx.scale(-1, 1);
+            ctx.drawImage(img, srcX, srcY, srcW, srcH, offsetX, offsetY, drawW, drawH);
+        } else {
+            ctx.translate(x, y);
+            ctx.drawImage(img, srcX, srcY, srcW, srcH, offsetX, offsetY, drawW, drawH);
+        }
+
+        ctx.restore();
+    }
 }
+

@@ -95,16 +95,17 @@ describe('Sprite wiring', () => {
       'icon_energy',
       'icon_health',
       'icon_love',
-      'menu_food',
-      'menu_gift',
+      'menu_care',
+      'menu_gifts',
       'menu_album',
       'menu_settings',
-      'menu_minigames',
+      'menu_games',
     ] as const;
 
     for (const key of requiredKeys) {
       const url = ICON_MAP[key];
-      expect(url.startsWith('/assets/ui/')).toBe(true);
+      expect(url).toBeDefined();
+      expect(url.includes('assets/ui/')).toBe(true);
       expect(existsSync(toPublicPath(url))).toBe(true);
     }
   });

@@ -76,6 +76,11 @@ function evaluateSealLike(state: PetState, sp: SealLikeSpecies): EvolutionSpecie
     state.stats.hunger > 75;
   if (fail) return sp.fail;
 
+  // Gift-based reward evolutions (Priority over normal/fail if already teen)
+  if (state.unlockedGifts.includes('gift_memory_master')) return sp.perfect;
+  if (state.unlockedGifts.includes('gift_pudding_pro')) return sp.normal;
+  if (state.unlockedGifts.includes('gift_snake_king')) return sp.perfect; // Reuse perfect for now
+
   return sp.normal;
 }
 
@@ -88,7 +93,15 @@ function evaluateFlan(state: PetState): EvolutionSpecies | undefined {
     return 'FLAN_ADULT';
   }
 
-  if (state.species !== 'FLAN_ADULT') return undefined;
+  if (state.species !== 'FLAN_ADULT') {
+    // Reward evolutions can happen even if not adult flan yet, if at least teen
+    if (state.species === 'FLAN_TEEN') {
+       if (state.unlockedGifts.includes('gift_pudding_pro')) return 'BAGEL';
+       if (state.unlockedGifts.includes('gift_memory_master')) return 'MUFFIN';
+       if (state.unlockedGifts.includes('gift_snake_king')) return 'SCONE';
+    }
+    return undefined;
+  }
 
   for (const rule of getSortedRules('flan')) {
     if (checkConditions(state, rule.conditions)) {

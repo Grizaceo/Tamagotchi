@@ -20,6 +20,7 @@ export function reduce(state: PetState, action: Action): PetState {
     return state;
   }
 
+  console.log(`[PomPom Reducer] Processing action: ${action.type}`, action.data || '');
   let newState = structuredClone(state);
 
   // Asegurar que counts existe (defensive programming para hot-loading o estados corruptos)
@@ -161,6 +162,7 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
   const reward = MINIGAME_REWARDS[result] ?? MINIGAME_REWARDS.loss;
   state.stats.happiness = clampStat(state.stats.happiness + reward.happinessDelta);
   state.stats.affection = clampStat(state.stats.affection + reward.affectionDelta);
+  state.stats.energy = clampStat(state.stats.energy + reward.energyDelta);
 
   const eventType = result === 'perfect' ? 'MINIGAME_PERFECT' : result === 'win' ? 'MINIGAME_WIN' : 'MINIGAME_LOSS';
   state.history.push(createEvent(eventType, action.timestamp, { gameId, score }));
@@ -177,6 +179,8 @@ function applyPlayMinigame(state: PetState, action: Action): PetState {
     if (score > gameStats.bestScore) gameStats.bestScore = score;
     if (result === 'win' || result === 'perfect') gameStats.totalWins++;
     if (result === 'perfect') gameStats.totalPerfect++;
+  } else {
+    console.warn(`[PomPom Reducer] Unknown gameId: ${gameId}`);
   }
 
   // Nota: Minigames no cuentan para "totalActions" ni counters específicos de cuidado

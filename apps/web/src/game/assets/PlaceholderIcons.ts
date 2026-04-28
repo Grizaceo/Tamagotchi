@@ -1,6 +1,6 @@
 import { AssetManager } from '../renderer/SpriteRenderer';
 
-const B = import.meta.env.BASE_URL;
+const B = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
 
 export const ICON_MAP = {
     // Stats (local UI assets)
@@ -11,17 +11,17 @@ export const ICON_MAP = {
     icon_love: `${B}assets/ui/icon_love.png`,
 
     // Menu (local UI assets)
-    menu_food: `${B}assets/ui/menu_food.png`,
+    menu_care: `${B}assets/ui/menu_care.png`,
     menu_light: `${B}assets/ui/menu_light.png`,
     menu_play: `${B}assets/ui/menu_play.png`,
     menu_medicine: `${B}assets/ui/menu_medicine.png`,
     menu_toilet: `${B}assets/ui/menu_toilet.png`,
     menu_stats: `${B}assets/ui/menu_stats.png`,
     menu_discipline: `${B}assets/ui/menu_discipline.png`,
-    menu_gift: `${B}assets/ui/menu_gift.png`,
+    menu_gifts: `${B}assets/ui/menu_gifts.png`,
     menu_album: `${B}assets/ui/menu_album.png`,
     menu_settings: `${B}assets/ui/menu_settings.png`,
-    menu_minigames: `${B}assets/ui/menu_minigames.png`,
+    menu_games: `${B}assets/ui/menu_games.png`,
     gift_judge: `${B}assets/ui/gift_judge.png`,
 
     // Labels

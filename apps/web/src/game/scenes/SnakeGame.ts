@@ -124,10 +124,11 @@ export class SnakeGame extends Scene {
     ctx.fillRect(0, 0, w, h);
 
     // HUD superior
+    // HUD superior
     ctx.fillStyle = PALETTE.ink;
     ctx.font = '14px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('SNAKE', w / 2, 18);
+    ctx.fillText('DACHSHUND RUN', w / 2, 18);
     ctx.textAlign = 'left';
     ctx.font = '11px "Cascadia Mono", "Courier New", monospace';
     ctx.fillText(`Score: ${this.score}`, 8, 18);
@@ -159,25 +160,85 @@ export class SnakeGame extends Scene {
       ctx.stroke();
     }
 
-    // Serpiente
+    // Perro Salchicha (Dachshund)
     this.snake.forEach((seg, i) => {
-      ctx.fillStyle = i === 0 ? PALETTE.snakeHead : PALETTE.snakeBody;
-      ctx.fillRect(
-        offsetX + seg.x * cellW + 1,
-        offsetY + seg.y * cellH + 1,
-        cellW - 2,
-        cellH - 2,
-      );
+      const x = offsetX + seg.x * cellW;
+      const y = offsetY + seg.y * cellH;
+      
+      ctx.fillStyle = PALETTE.dogBody;
+      
+      if (i === 0) {
+        // Cabeza
+        ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+        
+        // Hocico y Orejas según dirección
+        ctx.fillStyle = PALETTE.dogEar;
+        if (this.dir === UP) {
+           ctx.fillRect(x, y + 2, 3, 6); // Oreja L
+           ctx.fillRect(x + cellW - 3, y + 2, 3, 6); // Oreja R
+           ctx.fillStyle = PALETTE.ink;
+           ctx.fillRect(x + cellW / 2 - 1, y, 2, 2); // Nariz
+        } else if (this.dir === DOWN) {
+           ctx.fillRect(x, y + 2, 3, 6); // Oreja L
+           ctx.fillRect(x + cellW - 3, y + 2, 3, 6); // Oreja R
+           ctx.fillStyle = PALETTE.ink;
+           ctx.fillRect(x + cellW / 2 - 1, y + cellH - 2, 2, 2); // Nariz
+        } else if (this.dir === LEFT) {
+           ctx.fillRect(x + 4, y, 6, 3); // Oreja T
+           ctx.fillRect(x + 4, y + cellH - 3, 6, 3); // Oreja B
+           ctx.fillStyle = PALETTE.ink;
+           ctx.fillRect(x, y + cellH / 2 - 1, 2, 2); // Nariz
+        } else if (this.dir === RIGHT) {
+           ctx.fillRect(x + 2, y, 6, 3); // Oreja T
+           ctx.fillRect(x + 2, y + cellH - 3, 6, 3); // Oreja B
+           ctx.fillStyle = PALETTE.ink;
+           ctx.fillRect(x + cellW - 2, y + cellH / 2 - 1, 2, 2); // Nariz
+        }
+      } else {
+        // Cuerpo
+        ctx.fillRect(x + 2, y + 2, cellW - 4, cellH - 4);
+        
+        // Patas (en el primer y último cuarto del cuerpo aproximadamente)
+        if (i === 1 || i === this.snake.length - 2) {
+          ctx.fillStyle = PALETTE.dogEar;
+          ctx.fillRect(x + 1, y + 1, 3, 3);
+          ctx.fillRect(x + cellW - 4, y + 1, 3, 3);
+          ctx.fillRect(x + 1, y + cellH - 4, 3, 3);
+          ctx.fillRect(x + cellW - 4, y + cellH - 4, 3, 3);
+        }
+        
+        // Cola (último segmento)
+        if (i === this.snake.length - 1) {
+          ctx.fillStyle = PALETTE.dogEar;
+          const prev = this.snake[i - 1];
+          // Dirección de la cola opuesta al movimiento del segmento previo
+          if (prev.x > seg.x) ctx.fillRect(x - 2, y + cellH / 2 - 1, 4, 2);
+          else if (prev.x < seg.x) ctx.fillRect(x + cellW - 2, y + cellH / 2 - 1, 4, 2);
+          else if (prev.y > seg.y) ctx.fillRect(x + cellW / 2 - 1, y - 2, 2, 4);
+          else if (prev.y < seg.y) ctx.fillRect(x + cellW / 2 - 1, y + cellH - 2, 2, 4);
+        }
+      }
     });
 
-    // Comida
-    ctx.fillStyle = PALETTE.food;
-    ctx.fillRect(
-      offsetX + this.food.x * cellW + 2,
-      offsetY + this.food.y * cellH + 2,
-      cellW - 4,
-      cellH - 4,
-    );
+    // Pelota de Tenis
+    const fx = offsetX + this.food.x * cellW + cellW / 2;
+    const fy = offsetY + this.food.y * cellH + cellH / 2;
+    const r = cellW / 2 - 2;
+
+    ctx.fillStyle = PALETTE.tennisBall;
+    ctx.beginPath();
+    ctx.arc(fx, fy, r, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Líneas de la pelota
+    ctx.strokeStyle = PALETTE.tennisLine;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(fx - r, fy, r, -Math.PI/4, Math.PI/4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(fx + r, fy, r, Math.PI * 0.75, Math.PI * 1.25);
+    ctx.stroke();
 
     // Pantalla de resultado
     if (this.gameState !== 'playing') {
@@ -210,7 +271,7 @@ export class SnakeGame extends Scene {
 
   handleInput(command: InputCommand) {
     if (this.gameState !== 'playing') {
-      if (command === 'ENTER') {
+      if (command === 'ENTER' || command === 'BACK') {
         this.context.onSceneChange('select');
       }
       return;

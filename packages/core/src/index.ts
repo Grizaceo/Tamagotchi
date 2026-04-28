@@ -2,6 +2,7 @@ import type { PetState } from './model/PetState';
 import { applyEvolutionIfNeeded } from './evolution/evaluateEvolution';
 import { evaluateGiftUnlocks } from './features/gifts';
 import { evaluateAchievementUnlocks } from './features/achievements';
+import { evaluateAlbumUnlocks } from './features/album';
 
 // Model exports
 export * from './model/PetState';
@@ -22,6 +23,7 @@ export * from './evolution/evaluateEvolution';
 // Features exports
 export * from './features/gifts';
 export * from './features/achievements';
+export * from './features/album';
 
 // Persistence exports
 export * from './persistence/serialize';
@@ -38,11 +40,14 @@ export function postProcessState(state: PetState): PetState {
   // 1. Aplicar evolución si se cumplen condiciones
   processed = applyEvolutionIfNeeded(processed);
 
-  // 2. Evaluar y desbloquear regalos basado en estado actual
+  // 2. Evaluar y desbloquear regalos
   processed = evaluateGiftUnlocks(processed);
 
   // 3. Evaluar y desbloquear logros basado en estado final
   processed = evaluateAchievementUnlocks(processed);
+
+  // 4. Evaluar y desbloquear entradas del álbum
+  processed = evaluateAlbumUnlocks(processed);
 
   return processed;
 }

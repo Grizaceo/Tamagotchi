@@ -3,6 +3,40 @@ import { startGameLoop } from './game/GameLoop';
 import type { PetLine } from '@pompom/core';
 import { shouldForceReset, shouldUnregisterServiceWorker } from './game/runtimeConfig';
 
+// Polyfill for CanvasRenderingContext2D.roundRect (for older browsers and Vitest/JSDOM)
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    radii: number | number[]
+  ) {
+    if (typeof radii === 'number') radii = [radii];
+    if (radii.length === 1) radii = [radii[0], radii[0], radii[0], radii[0]];
+    if (radii.length === 2) radii = [radii[0], radii[1], radii[0], radii[1]];
+    if (radii.length === 3) radii = [radii[0], radii[1], radii[2], radii[1]];
+
+    const rtl = radii[0];
+    const rtr = radii[1];
+    const rbr = radii[2];
+    const rbl = radii[3];
+
+    this.beginPath();
+    this.moveTo(x + rtl, y);
+    this.lineTo(x + w - rtr, y);
+    this.arcTo(x + w, y, x + w, y + rtr, rtr);
+    this.lineTo(x + w, y + h - rbr);
+    this.arcTo(x + w, y + h, x + w - rbr, y + h, rbr);
+    this.lineTo(x + rbl, y + h);
+    this.arcTo(x, y + h, x, y + h - rbl, rbl);
+    this.lineTo(x, y + rtl);
+    this.arcTo(x, y, x + rtl, y, rtl);
+    this.closePath();
+    return this;
+  };
+}
+
 const canvas = document.querySelector<HTMLCanvasElement>('#screen');
 if (!canvas) {
   throw new Error('Canvas #screen not found');

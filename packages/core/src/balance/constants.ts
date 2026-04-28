@@ -72,10 +72,11 @@ export const MINIGAME_COOLDOWN_TICKS = 100;
 export interface MinigameReward {
   happinessDelta: number;
   affectionDelta: number;
+  energyDelta: number;
 }
 
 export const MINIGAME_REWARDS: Record<string, MinigameReward> = {
-  perfect: { happinessDelta: +25, affectionDelta: +10 },
-  win: { happinessDelta: +15, affectionDelta: +5 },
-  loss: { happinessDelta: 0, affectionDelta: 0 },
+  perfect: { happinessDelta: +25, affectionDelta: +10, energyDelta: -15 },
+  win: { happinessDelta: +15, affectionDelta: +5, energyDelta: -10 },
+  loss: { happinessDelta: 0, affectionDelta: 0, energyDelta: -5 },
 };

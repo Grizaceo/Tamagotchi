@@ -10,7 +10,7 @@ export interface MinigameStats {
   totalPerfect: number;
 }
 
-export type MinigameId = 'pudding' | 'memory' | 'snake' | 'tetris';
+export type MinigameId = 'pudding' | 'memory' | 'snake' | 'tetris' | 'flappy' | 'seal';
 
 export interface MinigamesState {
   lastPlayed: Record<MinigameId, number>; // For cooldown tracking
@@ -123,12 +123,16 @@ export function createInitialPetStateFor(petLine: PetLine): PetState {
         memory: -1000,
         snake: -1000,
         tetris: -1000,
+        flappy: -1000,
+        seal: -1000,
       },
       games: {
         pudding: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
         memory: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
         snake: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
         tetris: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+        flappy: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
+        seal: { lastPlayed: 0, bestScore: 0, totalPlayed: 0, totalWins: 0, totalPerfect: 0 },
       },
     },
     settings: {

@@ -48,6 +48,16 @@ const PIECES: PieceDef[] = [
   { color: 7, boxSize: 3, cells: makeRotations([[2,0],[0,1],[1,1],[2,1]], 3) },
 ];
 
+const PIECE_SPRITES = [
+  'FLAN_BEBE',
+  'BAGEL',
+  'MUFFIN',
+  'SCONE',
+  'FLAN_TEEN',
+  'FLAN_ADULT',
+  'POMPOMPURIN'
+];
+
 const PIECE_COLORS = PALETTE.tetris;
 
 interface Piece {
@@ -179,6 +189,31 @@ export class TetrisGame extends Scene {
     }
   }
 
+  private drawBlock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, colorIdx: number) {
+    const am = this.context.assetManager;
+    const spriteKey = PIECE_SPRITES[colorIdx - 1] || 'FLAN_BEBE';
+    const img = am?.get(spriteKey);
+
+    if (img) {
+      // Each sprite is a sheet, we want the first frame (idle)
+      // For food sprites, row 0 frame 0 is fine.
+      // Based on SpriteConfigs, gridSize is 128.
+      ctx.drawImage(img, 0, 0, 128, 128, x, y, size, size);
+    } else {
+      // Fallback to the cute procedural pudding
+      const radius = size * 0.3;
+      const caramelHeight = size * 0.25;
+      ctx.fillStyle = PIECE_COLORS[colorIdx];
+      ctx.beginPath();
+      ctx.roundRect(x, y + caramelHeight, size, size - caramelHeight, [0, 0, radius, radius]);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(94, 52, 27, 0.8)';
+      ctx.beginPath();
+      ctx.roundRect(x + 1, y, size - 2, caramelHeight + 1, [radius, radius, 0, 0]);
+      ctx.fill();
+    }
+  }
+
   draw() {
     const { ctx, canvas } = this.context;
     const w = canvas.width;
@@ -191,11 +226,13 @@ export class TetrisGame extends Scene {
     // HUD
     const bestScore = (this.context.extra?.bestScore as number | undefined) ?? 0;
     ctx.fillStyle = PALETTE.ink;
-    ctx.font = '14px "Cascadia Mono", "Courier New", monospace';
+    ctx.font = 'bold 14px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('TETRIS', w / 2, 16);
+    ctx.fillText('GOURMET STACK', w / 2, 16);
+    
     ctx.textAlign = 'left';
     ctx.font = '10px "Cascadia Mono", "Courier New", monospace';
+    ctx.fillStyle = PALETTE.inkSoft;
     ctx.fillText(`Lines: ${this.linesCleared}`, 4, 16);
     ctx.textAlign = 'right';
     ctx.fillText(`Best:${bestScore}`, w - 4, 16);
@@ -208,10 +245,9 @@ export class TetrisGame extends Scene {
     // Board cells
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        const color = this.board[r][c];
-        if (color !== 0) {
-          ctx.fillStyle = PIECE_COLORS[color];
-          ctx.fillRect(BOARD_X + c * CELL + 1, BOARD_Y + r * CELL + 1, CELL - 2, CELL - 2);
+        const colorIdx = this.board[r][c];
+        if (colorIdx !== 0) {
+          this.drawBlock(ctx, BOARD_X + c * CELL + 1, BOARD_Y + r * CELL + 1, CELL - 2, colorIdx);
         } else {
           ctx.fillStyle = PALETTE.screenCell;
           ctx.fillRect(BOARD_X + c * CELL, BOARD_Y + r * CELL, CELL, CELL);
@@ -227,38 +263,43 @@ export class TetrisGame extends Scene {
       let ghostDy = 0;
       while (canPlace(this.board, this.current, 0, ghostDy + 1)) ghostDy++;
       if (ghostDy > 0) {
-        ctx.fillStyle = 'rgba(42,42,34,0.18)';
+        ctx.fillStyle = 'rgba(42,42,34,0.12)';
         for (const [c, r] of def.cells[this.current.rotation]) {
           const pr = this.current.y + r + ghostDy;
           const pc = this.current.x + c;
           if (pr >= 0 && pr < ROWS) {
-            ctx.fillRect(BOARD_X + pc * CELL + 1, BOARD_Y + pr * CELL + 1, CELL - 2, CELL - 2);
+            const px = BOARD_X + pc * CELL + 1;
+            const py = BOARD_Y + pr * CELL + 1;
+            const size = CELL - 2;
+            const radius = size * 0.3;
+            
+            ctx.beginPath();
+            ctx.roundRect(px, py, size, size, radius);
+            ctx.fill();
           }
         }
       }
 
       // Current piece
-      ctx.fillStyle = PIECE_COLORS[def.color];
       for (const [c, r] of def.cells[this.current.rotation]) {
         const pr = this.current.y + r;
         const pc = this.current.x + c;
         if (pr >= 0) {
-          ctx.fillRect(BOARD_X + pc * CELL + 1, BOARD_Y + pr * CELL + 1, CELL - 2, CELL - 2);
+          this.drawBlock(ctx, BOARD_X + pc * CELL + 1, BOARD_Y + pr * CELL + 1, CELL - 2, def.color);
         }
       }
     }
 
     // Right panel — next piece preview
-    const panelX = BOARD_X + COLS * CELL + 10;
-    ctx.fillStyle = PALETTE.inkMuted;
+    const panelX = BOARD_X + COLS * CELL + 12;
+    ctx.fillStyle = PALETTE.inkSoft;
     ctx.font = '9px "Cascadia Mono", "Courier New", monospace';
     ctx.textAlign = 'left';
     ctx.fillText('NEXT', panelX, BOARD_Y + 10);
 
     const nextDef = PIECES[this.next.typeIdx];
-    ctx.fillStyle = PIECE_COLORS[nextDef.color];
     for (const [c, r] of nextDef.cells[0]) {
-      ctx.fillRect(panelX + c * 9 + 1, BOARD_Y + 16 + r * 9 + 1, 8, 8);
+      this.drawBlock(ctx, panelX + c * 9, BOARD_Y + 16 + r * 9, 8, nextDef.color);
     }
 
     // Controls hint
@@ -305,7 +346,7 @@ export class TetrisGame extends Scene {
 
   handleInput(command: InputCommand) {
     if (this.gameState !== 'playing') {
-      if (command === 'ENTER') {
+      if (command === 'ENTER' || command === 'BACK') {
         this.context.onSceneChange('select');
       }
       return;

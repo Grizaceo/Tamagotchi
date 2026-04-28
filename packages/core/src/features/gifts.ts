@@ -66,10 +66,28 @@ export const GIFT_CATALOG: Gift[] = [
     emoji: '🎁',
   },
   {
-    id: 'gift_judge_evolution',
-    name: 'Justicia Pompom',
-    description: 'La ley del más tierno (Evolución Perfecta)',
-    emoji: '⚖️',
+    id: 'gift_tetris_master',
+    name: 'Arquitecto de Bloques',
+    description: 'Tu habilidad para encajar piezas es legendaria',
+    emoji: '🧱',
+  },
+  {
+    id: 'gift_pudding_pro',
+    name: 'Maestro del Pudding',
+    description: 'Dominaste el arte de apilar postres',
+    emoji: '🍮',
+  },
+  {
+    id: 'gift_memory_master',
+    name: 'Genio de la Memoria',
+    description: 'Tu mente es tan aguda como un rayo',
+    emoji: '🧠',
+  },
+  {
+    id: 'gift_snake_king',
+    name: 'Rey de Chicha',
+    description: 'Nadie se desliza mejor que tú',
+    emoji: '🐍',
   },
 ];
 
@@ -151,10 +169,24 @@ export const GIFT_UNLOCK_CONDITIONS: GiftUnlockCondition[] = [
   },
 
   {
-    giftId: 'gift_judge_evolution',
-    description: 'Evoluciona a Pompompurin (Evolución Perfecta)',
-    checkFn: (state, context) =>
-      state.species === 'POMPOMPURIN' || context.evolvedTo.has('POMPOMPURIN'),
+    giftId: 'gift_tetris_master',
+    description: 'Gana 5 partidas de Tetris Game',
+    checkFn: (state) => (state.minigames.games.tetris?.totalWins || 0) >= 5,
+  },
+  {
+    giftId: 'gift_pudding_pro',
+    description: 'Gana 5 partidas de Pudding Game',
+    checkFn: (state) => (state.minigames.games.pudding?.totalWins || 0) >= 5,
+  },
+  {
+    giftId: 'gift_memory_master',
+    description: 'Gana 5 partidas de Memory Game',
+    checkFn: (state) => (state.minigames.games.memory?.totalWins || 0) >= 5,
+  },
+  {
+    giftId: 'gift_snake_king',
+    description: 'Gana 5 partidas de Chicha Game',
+    checkFn: (state) => (state.minigames.games.snake?.totalWins || 0) >= 5,
   },
 ];
 

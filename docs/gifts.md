@@ -15,6 +15,7 @@
 | **Espíritu Resiliente** | 🌟 | 1800+ ticks (30 min) | Superaste desafíos con gracia |
 | **Gema de Centenario** | 💎 | 6000+ ticks (100 min) | Jugaste 100+ minutos juntos |
 | **Caja Sorpresa** | 🎁 | Adulto + Health > 70 | Un regalo misterioso y único |
+| **Rey de Chicha** | 🐍 | Gana 5+ partidas | Nadie se desliza mejor que tú |
 
 ### Sistema de Desbloqueo
 

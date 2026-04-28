@@ -16,6 +16,8 @@ import { MemoryGame } from './scenes/MemoryGame';
 import { PuddingGame } from './scenes/PuddingGame';
 import { SnakeGame } from './scenes/SnakeGame';
 import { TetrisGame } from './scenes/TetrisGame';
+import { FlappyGame } from './scenes/FlappyGame';
+import { SealGame } from './scenes/SealGame';
 import {
   ALBUM_PAGE_SIZE,
   BOTTOM_MENU,
@@ -33,6 +35,9 @@ import {
 } from './runtimeConfig';
 import { createAudioEngine } from '../audio/AudioEngine';
 import { createAmbientEngine } from '../audio/AmbientEngine';
+import type { AssetManager, SpriteRenderer, AnimationState } from './renderer/SpriteRenderer';
+import type { UIRenderer } from './renderer/UIRenderer';
+import type { SPRITE_CONFIGS } from './renderer/SpriteConfigs';
 
 const TICK_MS = 1000;
 const SAVE_INTERVAL_MS = 5000;
@@ -50,7 +55,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   minigameCanvas.width = 320;
   minigameCanvas.height = 240;
 
-  const minigameManager = new SceneManager(minigameCanvas, (sceneName) => {
+  const minigameManager = new SceneManager(minigameCanvas, undefined, (sceneName) => {
     if (sceneName === 'select') {
       uiState.minigameMode = 'select';
       return;
@@ -62,6 +67,8 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   minigameManager.registerScene('memory-game', MemoryGame);
   minigameManager.registerScene('snake-game', SnakeGame);
   minigameManager.registerScene('tetris-game', TetrisGame);
+  minigameManager.registerScene('flappy-game', FlappyGame);
+  minigameManager.registerScene('seal-game', SealGame);
 
   let petState = loadState(petLinePreference);
   let uiState = createInitialUiState();
@@ -106,11 +113,11 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   }
 
   // --- Visual System Initialization ---
-  let spriteRenderer: any = null; // typed as SpriteRenderer
-  let assetManager: any;
-  let SPRITE_CONFIGS: any;
-  let uiRenderer: any = null;
-  let SpriteRenderer: any;
+  let spriteRenderer: SpriteRenderer | null = null;
+  let assetManager: AssetManager;
+  let spriteConfigs: typeof SPRITE_CONFIGS;
+  let uiRenderer: UIRenderer | null = null;
+  let SpriteRendererClass: typeof SpriteRenderer;
   let assetsReady = false;
 
   Promise.all([
@@ -122,10 +129,11 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     const { AssetManager, SpriteRenderer: SR } = modSprite;
     const { UIRenderer } = modUI;
     const { loadPlaceholders } = modIcons;
-    SPRITE_CONFIGS = modConfig.SPRITE_CONFIGS;
-    SpriteRenderer = SR;
+    spriteConfigs = modConfig.SPRITE_CONFIGS;
+    SpriteRendererClass = SR;
 
     assetManager = new AssetManager();
+    minigameManager.setAssetManager(assetManager);
     uiRenderer = new UIRenderer(assetManager);
 
     return uiRenderer.load().then(() => {
@@ -133,9 +141,11 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       return loadPlaceholders(assetManager);
     }).then(() => {
       const promises = [];
-      for (const key in SPRITE_CONFIGS) {
-        promises.push(assetManager.load(key, SPRITE_CONFIGS[key].src));
+      for (const key in spriteConfigs) {
+        promises.push(assetManager.load(key, (spriteConfigs as any)[key].src));
       }
+      // Load album demo
+      promises.push(assetManager.load('album_moments_demo', `${import.meta.env.BASE_URL}assets/album_moments_demo.png`));
       return Promise.allSettled(promises).then((results) => {
         let loaded = 0;
         for (const r of results) {
@@ -155,10 +165,10 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
 
   function updateSpriteRenderer(state: PetState) {
     const species = state.species;
-    const config = SPRITE_CONFIGS[species] || SPRITE_CONFIGS['FLAN_BEBE']; // Fallback
+    const config = spriteConfigs[species] || spriteConfigs['FLAN_BEBE']; // Fallback
 
     if (!spriteRenderer || spriteRenderer.assetKey !== species) {
-      spriteRenderer = new SpriteRenderer(assetManager, species, config);
+      spriteRenderer = new SpriteRendererClass(assetManager, species, config);
       spriteRenderer.displaySize = 128; // 1:1 with gridSize — no fractional scaling
       spriteRenderer.x = (320 - 128) / 2;
       // Center sprite in the area below the stats bar (stats end at y≈78, display bottom y≈220)
@@ -180,7 +190,7 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
       anim = 'happy';
     }
 
-    spriteRenderer.setAnimation(anim);
+    spriteRenderer.setAnimation(anim as AnimationState);
   }
 
 
@@ -266,13 +276,13 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
     // Render Frame
     renderFrame(ctx, petState, uiState, now, {
       minigameFrame: uiState.scene === 'Minigames' && uiState.minigameMode === 'playing' ? minigameCanvas : null,
-      spriteRenderer, // Pass new renderer
-      uiRenderer: uiRenderer || undefined,     // Pass new renderer
+      spriteRenderer: spriteRenderer ?? undefined, // Pass new renderer
+      uiRenderer: uiRenderer ?? undefined, // Pass new renderer
       assetManager,
       fadeAlpha,
     });
 
-    if (pendingSave && now - lastSaveAt > SAVE_INTERVAL_MS) {
+    if (pendingSave && now - lastSaveAt > SAVE_INTERVAL_MS && !isResetting) {
       saveState(petState);
       lastSaveAt = now;
       pendingSave = false;
@@ -282,9 +292,17 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   };
 
   const executeAction = (type: (typeof CARE_ACTIONS)[number]['type'], soundType: (typeof CARE_ACTIONS)[number]['sound']) => {
+    console.log(`[PomPom] Executing Action: ${type}`);
     const action = createAction(type, petState.totalTicks);
+    const oldStats = { ...petState.stats };
     petState = reduce(petState, action);
     petState = postProcessState(petState);
+    console.log(`[PomPom] Action ${type} completed. Stats delta:`, 
+      Object.keys(petState.stats).reduce((acc, key) => {
+        const delta = (petState.stats as any)[key] - (oldStats as any)[key];
+        if (delta !== 0) (acc as any)[key] = delta;
+        return acc;
+      }, {}));
     pendingSave = true;
     audio.play(soundType);
     lastActionAnim = ACTION_TO_ANIM[type] ?? null;
@@ -341,7 +359,9 @@ export function startGameLoop(canvas: HTMLCanvasElement, petLinePreference?: Pet
   };
 
   const openScene = (scene: SceneId) => {
-    fadeAlpha = 1;
+    if (scene !== 'CareMenu') {
+      fadeAlpha = 1;
+    }
     uiState.scene = scene;
     if (scene === 'Minigames') {
       uiState.minigameMode = 'select';
@@ -608,13 +628,13 @@ function applyWelcomeBackRecovery(state: PetState): PetState {
   }
 
   console.log('[PomPom] Applying mild welcome-back recovery for critical state');
-  state = structuredClone(state);
+  const newState = structuredClone(state);
 
   // Recovery is now very slight, just enough to give a chance to react
-  if (state.stats.health < 30) state.stats.health = 30;
-  if (state.stats.hunger > 85) state.stats.hunger = 85;
+  if (newState.stats.health < 30) newState.stats.health = 30;
+  if (newState.stats.hunger > 85) newState.stats.hunger = 85;
 
-  return state;
+  return newState;
 }
 
 function saveState(state: PetState): void {

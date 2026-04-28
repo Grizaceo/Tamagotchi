@@ -4,8 +4,11 @@
 
 :root {
   --bg-dark: #0f0d08;
-  --bg-warm: #342818;
-  --frame: #5a4026;
+  --bg-warm: #4a3c28;
+  --frame-yellow: #fee11a;
+  --frame-blue: #3f51b5;
+  --frame-brown: #5d3a1a;
+  --frame-grey: #b2c2d1;
   --frame-gold: #d7b87a;
   --btn-bg: #2a1f14;
   --btn-border: #7a5c38;
@@ -60,15 +63,73 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 24px 20px 20px;
-  border-radius: 28px;
-  background: linear-gradient(145deg, #2a1f14 0%, #1a1209 100%);
-  border: 3px solid var(--frame);
+  padding: 48px 40px 32px;
+  border-radius: 48px;
+  position: relative;
+  /* Premium Finish: Soft pearlescent metallic look */
+  background: radial-gradient(circle at 30% 30%, #fdfdfd 0%, #e8eaf6 40%, #c5cae9 100%);
+  border: 4px solid #283593;
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(215, 184, 122, 0.15),
-    0 0 80px rgba(201, 107, 59, 0.08);
+    0 32px 70px rgba(0, 0, 0, 0.5),
+    inset 0 4px 12px rgba(255, 255, 255, 0.8),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
 }
+
+/* ── Screen Bezel (Marco de la pantalla limpio) ── */
+
+#screen-bezel {
+  position: relative;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.05); /* Transparent subtle bezel */
+  border-radius: 12px;
+  border: 4px solid #333;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+  margin-bottom: 20px;
+}
+
+/* ── Plates (decoraciones estilo STICKER) ── */
+
+.plate {
+  position: absolute;
+  width: 50px; 
+  height: 50px;
+  background-size: 80%; 
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.9); /* Subtle semi-transparent white */
+  border: 2px solid rgba(255, 255, 255, 1);
+  border-radius: 50%; 
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 5; /* Lower than controls */
+  pointer-events: none;
+  overflow: hidden; 
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  transition: transform 0.3s ease;
+}
+
+.plate:hover {
+  transform: rotate(5deg) scale(1.05);
+}
+
+/* Top Decorations - Kept away from screen bezel */
+.plate-t1 { top: -20px; left: 5%; background-image: url('/assets/decorations/pompompurin_v2.png'); }
+.plate-t2 { top: -15px; left: 25%; background-image: url('/assets/decorations/seal.png'); width: 40px; height: 40px; }
+.plate-t3 { top: -15px; right: 25%; background-image: url('/assets/decorations/dachshund.png'); width: 44px; height: 44px; }
+.plate-t4 { top: -20px; right: 5%; background-image: url('/assets/decorations/fiu.png'); }
+
+/* Side Decorations - Safe areas */
+.plate-l1 { left: -25px; top: 30%; background-image: url('/assets/decorations/paw.png'); width: 34px; height: 34px; }
+.plate-l2 { left: -20px; top: 70%; background-image: url('/assets/decorations/pompompurin_v2.png'); width: 50px; height: 50px; }
+.plate-r1 { right: -25px; top: 30%; background-image: url('/assets/decorations/star.png'); width: 34px; height: 34px; }
+.plate-r2 { right: -20px; top: 70%; background-image: url('/assets/decorations/fiu_v2.png'); width: 50px; height: 50px; }
+
+/* Bottom Decorations - Safe from controls */
+.plate-b1 { bottom: -15px; left: 10%; background-image: url('/assets/decorations/seal_v2.png'); width: 48px; height: 48px; }
+.plate-b2 { bottom: -10px; left: 50%; transform: translateX(-50%); background-image: url('/assets/decorations/fish.png'); width: 34px; height: 34px; }
+.plate-b3 { bottom: -15px; right: 10%; background-image: url('/assets/decorations/dachshund_v2.png'); width: 48px; height: 48px; }
 
 /* ── Screen (canvas) ── */
 
@@ -77,16 +138,12 @@ body {
   width: 640px;
   height: auto;
   aspect-ratio: 4 / 3;
-  border-radius: 12px;
-  border: 3px solid var(--frame);
+  border-radius: 8px;
+  border: 1px solid #000;
   background: #241a10;
-  box-shadow:
-    inset 0 0 0 2px var(--frame-gold),
-    inset 0 4px 12px rgba(0, 0, 0, 0.4),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+  display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  touch-action: none;
 }
 
 /* ── Controls ── */
@@ -96,7 +153,9 @@ body {
   gap: 14px;
   justify-content: center;
   align-items: center;
-  padding: 4px 0;
+  margin-top: 20px;
+  position: relative;
+  z-index: 20;
 }
 
 #dpad {
@@ -117,8 +176,8 @@ body {
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  border: 2px solid var(--btn-border);
-  background: var(--btn-bg);
+  border: 2px solid var(--frame-gold);
+  background: linear-gradient(145deg, #3a2a1a, #2a1f14);
   color: var(--btn-text);
   font-family: inherit;
   font-size: 14px;

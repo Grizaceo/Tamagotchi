@@ -15,7 +15,7 @@ Monorepo de un Tamagotchi web con separación limpia entre:
 - `packages/core` para lógica determinista
 - `apps/web` para UI/render/input
 
-Además incorpora evolución, persistencia, regalos y minijuegos (Snake, Tetris, Memory/Pudding) con varias notas de integración y pulido.
+Además incorpora evolución, persistencia, regalos y minijuegos (Chicha, Tetris, Memory/Pudding) con varias notas de integración y pulido.
 
 ## Juicio rápido
 **Proyecto real y relativamente avanzado.**

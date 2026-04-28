@@ -13,10 +13,11 @@ export const PALETTE = {
   frameShadow: '#241b11',
   win:         '#4a7c4e',   // verde apagado
   lose:        '#a84c42',   // rojo apagado
-  // Snake
-  snakeHead:   '#4a7c4e',
-  snakeBody:   '#3a6240',
-  food:        '#a84c42',
-  // Tetris pieces (desaturadas, warm-retro)
-  tetris: ['', '#2e8b9e', '#c9a65e', '#6b4a7a', '#4a7c4e', '#a84c42', '#2e5c8a', '#b86f2a'] as string[],
+  // Chicha (Dachshund)
+  dogBody:     '#8b5a2b',   // marrón salchicha
+  dogEar:      '#5d3a1a',   // marrón oscuro orejas
+  tennisBall:  '#d4e157',   // verde tenis
+  tennisLine:  '#ffffff',
+  // Tetris pieces (Pudding flavors: Pink, Gold, Matcha, Berry, Orange, Choco, Grape)
+  tetris: ['', '#f48fb1', '#ffcc80', '#a5d6a7', '#90caf9', '#ffab91', '#bcaaa4', '#ce93d8'] as string[],
 };
